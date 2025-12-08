@@ -1,0 +1,188 @@
+Cursor Prompt — Part 4: On-device MediaPipe Pose + Processing → Edit Landmarks (read-only)
+
+You are an expert Android engineer. Extend the existing Kotlin/Jetpack Compose app (Parts 1–3 done; CropScreen already implemented) with on-device MediaPipe Pose processing and a read-only Edit Landmarks screen. Keep the Apple-inspired UI from our design system. No TODOs or placeholders. Provide full file contents.
+
+Flow to implement (must match current app):
+AnalysisScreen (capture) → CropScreen (user confirms crop) → ProcessingScreen (run pose on the cropped file, show loader “Изображение обрабатывается”) → EditLandmarksScreen (show image with detected landmarks; editing will be Part 5).
+
+Dependencies & assets
+
+Gradle (app/build.gradle):
+
+implementation("androidx.camera:camera-core:1.3.4")            // already added in Part 3
+implementation("androidx.camera:camera-camera2:1.3.4")
+implementation("androidx.camera:camera-lifecycle:1.3.4")
+implementation("androidx.camera:camera-view:1.3.4")
+implementation("androidx.exifinterface:exifinterface:1.3.7")
+
+// MediaPipe Tasks – Vision (Pose Landmarker)
+implementation("com.google.mediapipe:tasks-vision:0.10.14")
+
+
+Packaging (in android { packaging { resources { ... } } }) – prevent model compression:
+
+packaging {
+  resources {
+    noCompress += setOf("tflite", "lite", "bin", "task")
+  }
+}
+
+
+Assets: download pose_landmarker_full.task and place it at
+app/src/main/assets/models/pose_landmarker_full.task.
+Use this exact asset name in code. Handle missing-asset error gracefully with a user-visible message.
+
+Data & mapping (reuse our schema)
+
+Create core/vision/PoseNames.kt constant MP33_NAMES: List<String> with exact 33 names in schema order (NOSE, LEFT_EYE_INNER, …, RIGHT_FOOT_INDEX).
+
+Create data model domain/landmarks/Landmark(val name:String, val x:Float, val y:Float, val z:Float?, val visibility:Float?).
+
+Create data model domain/landmarks/LandmarkSet(val imageWidth:Int, val imageHeight:Int, val points:List<Landmark>).
+
+MediaPipe integration
+
+Create core/vision/MpPoseLandmarker.kt:
+
+Singleton provider that lazily initializes PoseLandmarker with BaseOptions from the asset "models/pose_landmarker_full.task". Use PoseLandmarker.LandmarkerOptions with static image running mode and default settings; max poses = 1.
+
+API:
+
+class MpPoseLandmarker @Inject constructor(@ApplicationContext ctx: Context) {
+    suspend fun detect(bitmap: Bitmap): LandmarkSet
+}
+
+
+Implementation details:
+
+Convert Bitmap to MPImage (BitmapImageBuilder).
+
+Call poseLandmarker.detect(mpImage).
+
+Read the first pose’s normalized landmarks (0..1), map to our MP33_NAMES order. Provide z and visibility if present; else null.
+
+Return LandmarkSet(imageWidth=bitmap.width, imageHeight=bitmap.height, points=...).
+
+Offload to Dispatchers.Default. Keep the PoseLandmarker instance cached; add close() in onCleared where relevant.
+
+Create core/vision/ImageDecode.kt:
+
+suspend fun decodeBitmap(path: String, maxSide: Int = 2048): Bitmap – decode efficiently (API 28+: ImageDecoder) with downscale to maxSide, keep orientation as is (CropScreen already fixed EXIF).
+
+Processing logic
+
+Create domain/processing/ProcessCroppedImageUseCase.kt:
+
+class ProcessCroppedImageUseCase @Inject constructor(
+  private val decoder: ImageDecoderFacade, // wrapper around decodeBitmap
+  private val landmarker: MpPoseLandmarker
+) {
+  suspend operator fun invoke(path: String): LandmarkSet
+}
+
+
+Create in-memory result store data/processing/ProcessingStore.kt:
+
+@Singleton class ProcessingStore keeps a MutableMap<String, LandmarkSet> (key = generated resultId as UUID).
+
+API: put(resultId: String, data: LandmarkSet), get(resultId: String): LandmarkSet?, remove(resultId: String).
+
+Navigation updates
+
+Add route models in ui/navigation/Destinations.kt:
+
+Processing(path: String) (already exists; keep).
+
+New: EditLandmarks(resultId: String, imagePath: String) with route pattern:
+"edit_landmarks?rid={rid}&path={path}" (both String).
+Provide helpers to encode/decode absolute paths (use Uri.encode).
+
+Update ui/navigation/AppNavHost.kt to add:
+
+composable(EditLandmarks.routePattern, arguments = listOf(
+    navArgument("rid"){ type = NavType.StringType; nullable = false },
+    navArgument("path"){ type = NavType.StringType; nullable = false }
+)) { backStackEntry ->
+    EditLandmarksScreen(
+       resultId = backStackEntry.arguments!!.getString("rid")!!,
+       imagePath = Uri.decode(backStackEntry.arguments!!.getString("path")!!)
+    )
+}
+
+ProcessingScreen – run MediaPipe here
+
+Replace the placeholder ProcessingScreen with a real implementation:
+
+ui/processing/ProcessingViewModel.kt
+
+State: isLoading (true initially), progressText (“Изображение обрабатывается”), error: String?.
+
+On start(path), run ProcessCroppedImageUseCase(path).
+
+On success: generate resultId = UUID.randomUUID().toString(), store set in ProcessingStore, then navigate to EditLandmarks(resultId, path).
+
+On error: show friendly message with actions Retry / Back to Camera.
+
+ui/processing/ProcessingScreen.kt
+
+Read path arg, call viewModel.start(path) once (guard via LaunchedEffect(key1 = path)).
+
+UI: full-screen card with progress indicator + text “Изображение обрабатывается”; if error!=null show error card with buttons.
+
+EditLandmarksScreen (read-only view for Part 4)
+
+Create ui/edit/EditLandmarksViewModel.kt:
+
+Loads LandmarkSet by resultId from ProcessingStore (or handles null with error).
+
+Exposes immutable state for UI: imagePath, landmarks, imageWidth/Height.
+
+Create ui/edit/EditLandmarksScreen.kt:
+
+Layout:
+
+Large title “Edit landmarks” (or localized).
+
+Preview card: load the imagePath (use remember(path) { BitmapFactory.decodeFile(path) } or Coil if already present), scale to fit width, draw overlay:
+
+Canvas draws small circles at each landmark position (x * width, y * height) and labels (index or name), with accent color.
+
+Info row: “Tap Continue to proceed to manual editing (next part).”
+
+Buttons: Continue (disabled for now or navigates back), Retake (navigate to camera start), Back.
+
+Important: No editing gestures in Part 4; show read-only overlay to confirm that the detector worked.
+
+UI polish & iOS-like details
+
+Use our PrimaryButton, SecondaryButton, rounded 20dp cards, Inter fonts, accent #0A84FF.
+
+Keep loaders and error toasts consistent with parts 1–3.
+
+If no person detected, ProcessingScreen should show a clear message:
+“Не удалось найти позу на изображении. Попробуйте ещё раз или сделайте снимок заново.” with actions Retry / Retake.
+
+Error handling & performance
+
+Load the MediaPipe model once (singleton provider).
+
+Downscale very large bitmaps to avoid OOM (maxSide=2048).
+
+All heavy work off the main thread using coroutines.
+
+Free the cached result from ProcessingStore once you leave EditLandmarksScreen (in DisposableEffect).
+
+Acceptance criteria
+
+After user confirms crop, app navigates to Processing and starts MediaPipe Pose on the cropped JPEG.
+
+While running, UI shows loader “Изображение обрабатывается”.
+
+On success, app navigates to EditLandmarks and displays the image with 33 overlaid landmarks (read-only).
+
+On failure (no pose or error), Processing shows an error card with Retry and Retake actions.
+
+Code compiles, runs, and requires no manual steps beyond placing pose_landmarker_full.task into assets.
+
+Output format:
+Return all created/changed files as separate code blocks with complete contents. No placeholders, no TODOs.

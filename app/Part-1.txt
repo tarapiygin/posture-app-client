@@ -1,0 +1,222 @@
+Cursor Prompt — Part 1: Auth Foundation (Apple-inspired UI)
+
+You are an expert Android engineer. We already have an Empty Activity project created in Android Studio. Using Kotlin and Jetpack Compose, implement Part 1 of the app: registration, login, token refresh, and “Me” fetch against the backend described by the local files:
+
+posture-api.schema.json — API JSON contract (auth endpoints + response shapes).
+
+android-client-config.json — environment & paths; use these fields exactly:
+
+api_base_url, health_path
+
+auth.register, auth.login, auth.refresh, auth.verify, auth.me
+
+auth.header (must be "Authorization"), token_prefix (e.g., "Bearer ").
+
+Do not implement sessions/photos/inference yet. This task is strictly the Auth foundation and app theming. No TODOs or placeholders. Provide full file contents.
+
+Technical stack & architecture
+
+Language/UI: Kotlin, Jetpack Compose, Material 3, Navigation-Compose.
+
+Architecture: Clean MVVM + Repository. Layers: ui (screens), domain (models/usecases), data (api, dto, repo), core (design system, utils).
+
+DI: Hilt.
+
+Networking: Retrofit + OkHttp, Kotlinx Serialization (or Moshi) — pick one and wire converters.
+
+Storage: Encrypted DataStore for access/refresh tokens.
+
+Auth plumbing:
+
+AuthInterceptor — inject Authorization: Bearer <access> for protected calls.
+
+TokenAuthenticator — on 401, use refresh endpoint; if success: persist new access and retry once.
+
+AuthRepository — register(), login(), refresh(), me(), logout().
+
+Validation & errors: Email/password validation client-side; server errors parse per Problem schema from posture-api.schema.json.
+
+Connectivity check: call GET health_path on app start and surface a non-blocking banner if backend is down.
+
+Apple-inspired design system (unique look)
+
+Create a minimal Cupertino-like design system with Compose:
+
+Typography: bundle Inter (regular/medium/semibold) in res/font and apply as default (iOS-like feel; do not use Apple SF fonts).
+
+Colors:
+
+AccentBlue = #0A84FF, SuccessGreen = #34C759, DestructiveRed = #FF3B30
+
+Surfaces: Background = #F2F2F7, Card = #FFFFFF with subtle shadow and 20dp corners
+
+Text: Primary = #000000, Secondary = #3C3C43 @ 60% alpha
+
+Components:
+
+LargeTitleTopBar (iOS-like large title that collapses on scroll)
+
+CupertinoTextField (rounded 14dp, clear-button, subtle inner shadow)
+
+PrimaryButton (filled accent, 20dp radius, 52dp height), SecondaryButton (tonal)
+
+InlineError (red caption under fields)
+
+Motion/Haptics: animate* on state transitions; mild scale on press; optional haptic feedback on success.
+
+All of the above must be encapsulated in core/designsystem.
+
+Feature scope (this part)
+
+Welcome/Auth navigation flow
+
+If tokens exist and GET auth.me succeeds → navigate to Home (placeholder).
+
+Else → AuthRoot with Sign In and Sign Up tabs (Cupertino segmented control look).
+
+Sign Up screen
+
+Fields: Email, Password, Confirm password.
+
+Button: Create account.
+
+POST auth.register (from android-client-config.json) and expect body/response matching the schema defs (AuthRegisterRequest, AuthRegisterResponse with { user, tokens }). Persist tokens on success and navigate to Home.
+
+Sign In screen
+
+Fields: Email, Password.
+
+Button: Sign in.
+
+POST auth.login → { access, refresh }; persist; call auth.me to load profile.
+
+Token refresh
+
+TokenAuthenticator uses auth.refresh when a protected call returns 401, stores new access, retries once. If refresh fails, logout → back to AuthRoot.
+
+Profile fetch
+
+GET auth.me to show a minimal profile card (email) on Home.
+
+Verify endpoint (optional quick check)
+
+POST auth.verify can be used for debugging token validity.
+
+Logout
+
+Clear tokens; navigate to AuthRoot.
+
+All endpoints and paths must be read from android-client-config.json; do not hardcode.
+
+Files to create/modify (complete contents)
+
+Update Gradle and add the following packages/files. Provide every file in full.
+
+Gradle & Manifest
+
+build.gradle(Project) and app/build.gradle:
+
+Kotlin, Compose BOM, Material3, Navigation-Compose, Hilt, Retrofit, OkHttp, Kotlinx Serialization (or Moshi), DataStore (encrypted), Accompanist-SystemUIController.
+
+AndroidManifest.xml: Internet permission.
+
+proguard-rules.pro: keep rules for serialization models (if R8 enabled).
+
+Core
+
+core/config/AppConfig.kt — loads android-client-config.json from assets/ and exposes base URL, paths, header name and token prefix. (Ship a copy of your JSON file into app/src/main/assets/.)
+
+core/network/RetrofitProvider.kt, OkHttpProvider.kt with AuthInterceptor, TokenAuthenticator.
+
+core/datastore/SecureTokenStore.kt — Encrypted DataStore with keys access_token, refresh_token.
+
+core/designsystem/:
+
+Theme.kt, Color.kt, Typography.kt, Shapes.kt
+
+components/LargeTitleTopBar.kt, CupertinoTextField.kt, PrimaryButton.kt, SecondaryButton.kt, InlineError.kt
+
+Fonts in res/font (Inter regular/medium/semibold).
+
+Data layer
+
+data/auth/dto/*:
+
+AuthLoginRequest, AuthLoginResponse
+
+AuthRegisterRequest, AuthRegisterResponse { user: UserMe, tokens: AuthTokens }
+
+AuthRefreshRequest, AuthRefreshResponse, AuthVerifyRequest/Response, UserMe
+
+Problem shape for error payloads (per schema).
+
+data/auth/AuthApi.kt — Retrofit interface with methods pointing to paths from config (register/login/refresh/verify/me).
+
+data/auth/AuthRepository.kt — orchestrates calls, stores tokens, exposes flows: authState, currentUser.
+
+Domain
+
+domain/auth/AuthUseCases.kt — SignIn, SignUp, RefreshToken, LoadMe, Logout.
+
+UI + Navigation
+
+ui/navigation/AppNavHost.kt — routes: AuthRoot, SignIn, SignUp, Home.
+
+ui/auth/SignInViewModel.kt, SignUpViewModel.kt — MVVM with input state, validation, progress & error handling.
+
+ui/auth/SignInScreen.kt, SignUpScreen.kt, AuthRootScreen.kt (segmented control).
+
+ui/home/HomeScreen.kt — minimal placeholder with email and Logout button.
+
+MainActivity.kt — wiring theme, system bars, nav host, initial route after checking token + me.
+
+Assets
+
+app/src/main/assets/android-client-config.json — copy the file (as provided).
+
+Tests (smoke level)
+
+Optional: instrumented test hitting /health/ and mocking AuthApi for sign-in; if added, must compile.
+
+Networking details (must follow the backend schema)
+
+All requests/response DTOs must match the JSON definitions from posture-api.schema.json:
+
+AuthLoginRequest / AuthLoginResponse { access, refresh }
+
+AuthRegisterRequest { email, password } / AuthRegisterResponse { user, tokens }
+
+AuthRefreshRequest { refresh } / AuthRefreshResponse { access }
+
+UserMe { id, email, is_active, is_superuser }
+
+Problem { detail, code?, errors?[] } for error handling
+
+Use the exact header key and prefix from config (Authorization, Bearer ) for authenticated calls.
+
+UX requirements
+
+Email/password validation with inline errors. Disabled primary button until valid.
+
+Progress indicators on network calls; error banners for Problem.detail.
+
+Large iOS-style title on Auth screens; subtle card backgrounds; 20dp corner radius; 52dp buttons.
+
+Respect system dark/light; provide matching palettes (tint colors may stay the same).
+
+Acceptance criteria
+
+App builds and runs.
+
+If server reachable: /health/ success banner; otherwise non-blocking warning.
+
+Register → tokens persisted → me fetched → Home.
+
+Login → tokens persisted → me fetched → Home.
+
+Token is auto-attached; 401 triggers refresh; failure logs out.
+
+Navigation & UI follow the Apple-inspired theme.
+
+Output
+Return all changed/created files in separate code blocks with full contents. No TODOs. Do not implement any endpoints beyond Auth in this part.

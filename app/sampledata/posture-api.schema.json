@@ -1,0 +1,740 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://posture.example/api-schema.json",
+  "title": "Posture Analysis API – Client/Server JSON Schemas",
+  "type": "object",
+  "description": "Полный набор JSON Schema для клиент-серверного взаимодействия (Django+DRF, локальное файловое хранилище, SimpleJWT).",
+  "$defs": {
+    "UUID": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "Date": {
+      "type": "string",
+      "format": "date"
+    },
+    "Email": {
+      "type": "string",
+      "format": "email",
+      "maxLength": 254
+    },
+    "Sex": {
+      "type": "string",
+      "enum": ["male", "female", "other"]
+    },
+    "View": {
+      "type": "string",
+      "enum": ["front", "back", "side"]
+    },
+    "KPVersion": {
+      "type": "string",
+      "enum": ["auto", "final"]
+    },
+    "SessionStatus": {
+      "type": "string",
+      "enum": ["draft", "final"]
+    },
+    "MP33KeypointName": {
+      "type": "string",
+      "enum": [
+        "NOSE",
+        "LEFT_EYE_INNER", "LEFT_EYE", "LEFT_EYE_OUTER",
+        "RIGHT_EYE_INNER", "RIGHT_EYE", "RIGHT_EYE_OUTER",
+        "LEFT_EAR", "RIGHT_EAR",
+        "MOUTH_LEFT", "MOUTH_RIGHT",
+        "LEFT_SHOULDER", "RIGHT_SHOULDER",
+        "LEFT_ELBOW", "RIGHT_ELBOW",
+        "LEFT_WRIST", "RIGHT_WRIST",
+        "LEFT_PINKY", "RIGHT_PINKY",
+        "LEFT_INDEX", "RIGHT_INDEX",
+        "LEFT_THUMB", "RIGHT_THUMB",
+        "LEFT_HIP", "RIGHT_HIP",
+        "LEFT_KNEE", "RIGHT_KNEE",
+        "LEFT_ANKLE", "RIGHT_ANKLE",
+        "LEFT_HEEL", "RIGHT_HEEL",
+        "LEFT_FOOT_INDEX", "RIGHT_FOOT_INDEX"
+      ]
+    },
+    "Problem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "detail": { "type": "string" },
+        "code": { "type": "string" },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "loc": { "type": "array", "items": { "type": "string" } },
+              "msg": { "type": "string" }
+            },
+            "required": ["msg"]
+          }
+        }
+      },
+      "required": ["detail"]
+    },
+    "PaginationMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "page": { "type": "integer", "minimum": 1 },
+        "page_size": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["count", "page", "page_size"]
+    },
+
+    "AuthLoginRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "email": { "$ref": "#/$defs/Email" },
+        "password": { "type": "string", "minLength": 6, "maxLength": 256 }
+      },
+      "required": ["email", "password"]
+    },
+    "AuthLoginResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "access": { "type": "string", "minLength": 20 },
+        "refresh": { "type": "string", "minLength": 20 }
+      },
+      "required": ["access", "refresh"]
+    },
+    "AuthRefreshRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "refresh": { "type": "string", "minLength": 20 }
+      },
+      "required": ["refresh"]
+    },
+    "AuthRefreshResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "access": { "type": "string", "minLength": 20 }
+      },
+      "required": ["access"]
+    },
+    "AuthVerifyRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "token": { "type": "string", "minLength": 20 }
+      },
+      "required": ["token"]
+    },
+    "AuthVerifyResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "detail": { "type": "string", "const": "Token is valid" }
+      },
+      "required": ["detail"]
+    },
+    "AuthTokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "access": { "type": "string", "minLength": 20 },
+        "refresh": { "type": "string", "minLength": 20 }
+      },
+      "required": ["access", "refresh"]
+    },
+    "AuthRegisterRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "email": { "$ref": "#/$defs/Email" },
+        "password": { "type": "string", "minLength": 8, "maxLength": 128 }
+      },
+      "required": ["email", "password"]
+    },
+    "AuthRegisterResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "user": { "$ref": "#/$defs/UserMe" },
+        "tokens": { "$ref": "#/$defs/AuthTokens" }
+      },
+      "required": ["user", "tokens"]
+    },
+    "UserMe": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/UUID" },
+        "email": { "$ref": "#/$defs/Email" },
+        "is_active": { "type": "boolean" },
+        "is_superuser": { "type": "boolean" }
+      },
+      "required": ["id", "email", "is_active", "is_superuser"]
+    },
+
+    "PatientIn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "display_name": { "type": "string", "minLength": 1, "maxLength": 150 },
+        "dob": { "$ref": "#/$defs/Date" },
+        "sex": { "$ref": "#/$defs/Sex" },
+        "external_code": { "type": "string", "maxLength": 120 },
+        "notes": { "type": "string", "maxLength": 5000 }
+      },
+      "required": ["display_name"]
+    },
+    "PatientOut": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/UUID" },
+        "display_name": { "type": "string" },
+        "dob": { "$ref": "#/$defs/Date" },
+        "sex": { "$ref": "#/$defs/Sex" },
+        "external_code": { "type": "string" },
+        "notes": { "type": "string" },
+        "created_at": { "$ref": "#/$defs/Timestamp" },
+        "updated_at": { "$ref": "#/$defs/Timestamp" },
+        "deleted_at": { "$ref": "#/$defs/Timestamp" }
+      },
+      "required": ["id", "display_name", "created_at", "updated_at"]
+    },
+    "PatientList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PatientOut" }
+        },
+        "pagination": { "$ref": "#/$defs/PaginationMeta" }
+      },
+      "required": ["results", "pagination"]
+    },
+
+    "SessionIn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "patient_id": { "$ref": "#/$defs/UUID" },
+        "note": { "type": "string", "maxLength": 10000 }
+      },
+      "required": ["patient_id"]
+    },
+    "SessionOut": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/UUID" },
+        "patient_id": { "$ref": "#/$defs/UUID" },
+        "status": { "$ref": "#/$defs/SessionStatus" },
+        "note": { "type": "string" },
+        "created_at": { "$ref": "#/$defs/Timestamp" }
+      },
+      "required": ["id", "patient_id", "status", "created_at"]
+    },
+    "SessionList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SessionOut" }
+        },
+        "pagination": { "$ref": "#/$defs/PaginationMeta" }
+      },
+      "required": ["results", "pagination"]
+    },
+
+    "PhotoUploadRequestMultipart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "view": { "$ref": "#/$defs/View" },
+        "file": {
+          "type": "string",
+          "contentEncoding": "binary",
+          "contentMediaType": "image/*",
+          "description": "Изображение фронт/тыл/профиль (jpeg/png/webp)"
+        }
+      },
+      "required": ["view", "file"]
+    },
+    "PhotoUploadResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session": { "$ref": "#/$defs/UUID" },
+        "view": { "$ref": "#/$defs/View" },
+        "file_url": { "type": "string", "minLength": 1 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["session", "view", "file_url", "width", "height"]
+    },
+    "PhotoMetaOut": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session": { "$ref": "#/$defs/UUID" },
+        "view": { "$ref": "#/$defs/View" },
+        "file_url": { "type": "string" },
+        "width": { "type": "integer" },
+        "height": { "type": "integer" },
+        "created_at": { "$ref": "#/$defs/Timestamp" }
+      },
+      "required": ["session", "view", "file_url"]
+    },
+
+    "InferRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "view": { "$ref": "#/$defs/View" }
+      },
+      "required": ["view"]
+    },
+    "ImageSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["w", "h"]
+    },
+    "Keypoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/MP33KeypointName" },
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "z": { "type": "number" },
+        "visibility": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["name", "x", "y"]
+    },
+    "KeypointsSetOut": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "image_size": { "$ref": "#/$defs/ImageSize" },
+        "keypoints": {
+          "type": "array",
+          "minItems": 33,
+          "maxItems": 33,
+          "items": { "$ref": "#/$defs/Keypoint" }
+        }
+      },
+      "required": ["image_size", "keypoints"]
+    },
+    "KeypointsSetIn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "view": { "$ref": "#/$defs/View" },
+        "version": { "$ref": "#/$defs/KPVersion" },
+        "keypoints": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Keypoint" }
+        }
+      },
+      "required": ["view", "version", "keypoints"]
+    },
+
+    "QueryPatients": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": { "type": "string" },
+        "dob": { "$ref": "#/$defs/Date" },
+        "page": { "type": "integer", "minimum": 1, "default": 1 },
+        "page_size": { "type": "integer", "minimum": 1, "maximum": 200, "default": 20 }
+      }
+    },
+    "QuerySessions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "patient_id": { "$ref": "#/$defs/UUID" },
+        "page": { "type": "integer", "minimum": 1, "default": 1 },
+        "page_size": { "type": "integer", "minimum": 1, "maximum": 200, "default": 20 }
+      }
+    },
+    "QueryPhotoDownload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "view": { "$ref": "#/$defs/View" }
+      },
+      "required": ["view"]
+    },
+    "QueryKeypointsGet": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "view": { "$ref": "#/$defs/View" },
+        "version": { "$ref": "#/$defs/KPVersion" }
+      },
+      "required": ["view", "version"]
+    }
+  },
+
+  "properties": {
+    "endpoints": {
+      "type": "array",
+      "description": "Декларативное описание эндпоинтов и привязка к схемам запросов/ответов.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "method": { "type": "string", "enum": ["GET", "POST", "PUT", "DELETE"] },
+          "path": { "type": "string" },
+          "authRequired": { "type": "boolean" },
+          "pathParams": { "type": "object" },
+          "querySchema": { "type": "object" },
+          "requestBody": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mediaType": { "type": "string" },
+              "schema": { "type": "object" }
+            }
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": { "type": "integer" },
+                "mediaType": { "type": "string" },
+                "schema": { "type": "object" },
+                "binary": { "type": "boolean", "default": false }
+              },
+              "required": ["status", "mediaType"]
+            }
+          }
+        },
+        "required": ["name", "method", "path", "authRequired", "responses"]
+      }
+    }
+  },
+
+  "required": ["endpoints"],
+
+  "examples": [
+    {
+      "endpoints": [
+        {
+          "name": "Health",
+          "method": "GET",
+          "path": "/health/",
+          "authRequired": false,
+          "responses": [
+            {
+              "status": 200,
+              "mediaType": "application/json",
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": { "status": { "type": "string", "const": "ok" } },
+                "required": ["status"]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Auth – Login",
+          "method": "POST",
+          "path": "/api/auth/jwt/create",
+          "authRequired": false,
+          "requestBody": {
+            "mediaType": "application/json",
+            "schema": { "$ref": "#/$defs/AuthLoginRequest" }
+          },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/AuthLoginResponse" } },
+            { "status": 401, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Auth – Refresh",
+          "method": "POST",
+          "path": "/api/auth/jwt/refresh",
+          "authRequired": false,
+          "requestBody": {
+            "mediaType": "application/json",
+            "schema": { "$ref": "#/$defs/AuthRefreshRequest" }
+          },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/AuthRefreshResponse" } },
+            { "status": 401, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Auth – Verify",
+          "method": "POST",
+          "path": "/api/auth/jwt/verify",
+          "authRequired": false,
+          "requestBody": {
+            "mediaType": "application/json",
+            "schema": { "$ref": "#/$defs/AuthVerifyRequest" }
+          },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/AuthVerifyResponse" } },
+            { "status": 401, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Auth – Me",
+          "method": "GET",
+          "path": "/api/auth/me",
+          "authRequired": true,
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/UserMe" } },
+            { "status": 401, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Auth – Register",
+          "method": "POST",
+          "path": "/api/auth/register",
+          "authRequired": false,
+          "requestBody": {
+            "mediaType": "application/json",
+            "schema": { "$ref": "#/$defs/AuthRegisterRequest" }
+          },
+          "responses": [
+            { "status": 201, "mediaType": "application/json", "schema": { "$ref": "#/$defs/AuthRegisterResponse" } },
+            { "status": 400, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+
+        {
+          "name": "Patients – Create",
+          "method": "POST",
+          "path": "/api/patients/",
+          "authRequired": true,
+          "requestBody": {
+            "mediaType": "application/json",
+            "schema": { "$ref": "#/$defs/PatientIn" }
+          },
+          "responses": [
+            { "status": 201, "mediaType": "application/json", "schema": { "$ref": "#/$defs/PatientOut" } },
+            { "status": 400, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } },
+            { "status": 401, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Patients – List",
+          "method": "GET",
+          "path": "/api/patients/",
+          "authRequired": true,
+          "querySchema": { "$ref": "#/$defs/QueryPatients" },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/PatientList" } },
+            { "status": 401, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Patients – Retrieve",
+          "method": "GET",
+          "path": "/api/patients/{patient_id}/",
+          "authRequired": true,
+          "pathParams": {
+            "type": "object",
+            "properties": { "patient_id": { "$ref": "#/$defs/UUID" } },
+            "required": ["patient_id"]
+          },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/PatientOut" } },
+            { "status": 404, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Patients – Update",
+          "method": "PUT",
+          "path": "/api/patients/{patient_id}/",
+          "authRequired": true,
+          "pathParams": {
+            "type": "object",
+            "properties": { "patient_id": { "$ref": "#/$defs/UUID" } },
+            "required": ["patient_id"]
+          },
+          "requestBody": {
+            "mediaType": "application/json",
+            "schema": { "$ref": "#/$defs/PatientIn" }
+          },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/PatientOut" } },
+            { "status": 400, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } },
+            { "status": 404, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Patients – Delete (soft)",
+          "method": "DELETE",
+          "path": "/api/patients/{patient_id}/",
+          "authRequired": true,
+          "pathParams": {
+            "type": "object",
+            "properties": { "patient_id": { "$ref": "#/$defs/UUID" } },
+            "required": ["patient_id"]
+          },
+          "responses": [
+            { "status": 204, "mediaType": "application/json" },
+            { "status": 404, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+
+        {
+          "name": "Sessions – Create",
+          "method": "POST",
+          "path": "/api/sessions/",
+          "authRequired": true,
+          "requestBody": {
+            "mediaType": "application/json",
+            "schema": { "$ref": "#/$defs/SessionIn" }
+          },
+          "responses": [
+            { "status": 201, "mediaType": "application/json", "schema": { "$ref": "#/$defs/SessionOut" } },
+            { "status": 400, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Sessions – List",
+          "method": "GET",
+          "path": "/api/sessions/",
+          "authRequired": true,
+          "querySchema": { "$ref": "#/$defs/QuerySessions" },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/SessionList" } }
+          ]
+        },
+        {
+          "name": "Sessions – Retrieve",
+          "method": "GET",
+          "path": "/api/sessions/{session_id}/",
+          "authRequired": true,
+          "pathParams": {
+            "type": "object",
+            "properties": { "session_id": { "$ref": "#/$defs/UUID" } },
+            "required": ["session_id"]
+          },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/SessionOut" } },
+            { "status": 404, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+
+        {
+          "name": "Photos – Upload (multipart)",
+          "method": "POST",
+          "path": "/api/photos/upload/{session_id}/",
+          "authRequired": true,
+          "pathParams": {
+            "type": "object",
+            "properties": { "session_id": { "$ref": "#/$defs/UUID" } },
+            "required": ["session_id"]
+          },
+          "requestBody": {
+            "mediaType": "multipart/form-data",
+            "schema": { "$ref": "#/$defs/PhotoUploadRequestMultipart" }
+          },
+          "responses": [
+            { "status": 201, "mediaType": "application/json", "schema": { "$ref": "#/$defs/PhotoUploadResponse" } },
+            { "status": 400, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Photos – Download (binary)",
+          "method": "GET",
+          "path": "/api/photos/download/{session_id}/",
+          "authRequired": true,
+          "pathParams": {
+            "type": "object",
+            "properties": { "session_id": { "$ref": "#/$defs/UUID" } },
+            "required": ["session_id"]
+          },
+          "querySchema": { "$ref": "#/$defs/QueryPhotoDownload" },
+          "responses": [
+            { "status": 200, "mediaType": "image/jpeg", "binary": true },
+            { "status": 200, "mediaType": "image/png", "binary": true },
+            { "status": 200, "mediaType": "image/webp", "binary": true },
+            { "status": 404, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+
+        {
+          "name": "Inference – Mediapipe Pose",
+          "method": "POST",
+          "path": "/api/infer/{session_id}/",
+          "authRequired": true,
+          "pathParams": {
+            "type": "object",
+            "properties": { "session_id": { "$ref": "#/$defs/UUID" } },
+            "required": ["session_id"]
+          },
+          "requestBody": {
+            "mediaType": "application/json",
+            "schema": { "$ref": "#/$defs/InferRequest" }
+          },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/KeypointsSetOut" } },
+            { "status": 422, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+
+        {
+          "name": "Keypoints – Save final",
+          "method": "PUT",
+          "path": "/api/keypoints/{session_id}/",
+          "authRequired": true,
+          "pathParams": {
+            "type": "object",
+            "properties": { "session_id": { "$ref": "#/$defs/UUID" } },
+            "required": ["session_id"]
+          },
+          "requestBody": {
+            "mediaType": "application/json",
+            "schema": { "$ref": "#/$defs/KeypointsSetIn" }
+          },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/KeypointsSetOut" } },
+            { "status": 400, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        },
+        {
+          "name": "Keypoints – Get",
+          "method": "GET",
+          "path": "/api/keypoints/{session_id}/",
+          "authRequired": true,
+          "pathParams": {
+            "type": "object",
+            "properties": { "session_id": { "$ref": "#/$defs/UUID" } },
+            "required": ["session_id"]
+          },
+          "querySchema": { "$ref": "#/$defs/QueryKeypointsGet" },
+          "responses": [
+            { "status": 200, "mediaType": "application/json", "schema": { "$ref": "#/$defs/KeypointsSetOut" } },
+            { "status": 404, "mediaType": "application/json", "schema": { "$ref": "#/$defs/Problem" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

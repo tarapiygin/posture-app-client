@@ -1,0 +1,40 @@
+{
+  "environment": "development",
+  "api_base_url": "http://127.0.0.1:8000",
+  "health_path": "/health/",
+  "auth": {
+    "register": "/api/auth/register",
+    "login": "/api/auth/jwt/create",
+    "refresh": "/api/auth/jwt/refresh",
+    "verify": "/api/auth/jwt/verify",
+    "me": "/api/auth/me",
+    "header": "Authorization",
+    "token_prefix": "Bearer "
+  },
+  "patients": {
+    "list": "/api/patients/",
+    "detail": "/api/patients/%s/"
+  },
+  "sessions": {
+    "list": "/api/sessions/",
+    "detail": "/api/sessions/%s/"
+  },
+  "photos": {
+    "upload": "/api/photos/upload/%s/",
+    "download": "/api/photos/download/%s/"
+  },
+  "keypoints": {
+    "base": "/api/keypoints/%s/"
+  },
+  "inference": {
+    "run": "/api/infer/%s/"
+  },
+  "timeouts": {
+    "connect_seconds": 10,
+    "read_seconds": 30
+  },
+  "media": {
+    "allowed_mime_types": ["image/jpeg", "image/png", "image/webp"],
+    "max_upload_megabytes": 15
+  }
+}

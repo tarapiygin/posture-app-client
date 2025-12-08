@@ -1,0 +1,169 @@
+Cursor Prompt — Part 2: Home Screen + Bottom Navigation + Permissions (Apple-inspired)
+
+You are an expert Android engineer. Extend the existing Kotlin/Jetpack Compose app (Part 1 done) with the Home screen and bottom navigation. Keep the Apple-inspired style from Part 1 (our design system in core/designsystem). Do not add TODOs or placeholders. Provide full file contents.
+
+Goal (this part):
+
+After successful sign-in/sign-up, users land on Home.
+
+Home shows a large iOS-like title, a short paragraph describing posture analysis, and a primary CTA button “Start analysis”.
+
+On CTA press: request runtime permissions (CAMERA + media/photos). If granted → navigate to route "analysis" (placeholder for the next part). If denied → show a modal with rationale and an Open Settings action.
+
+Add bottom navigation bar with 4 items (icons + labels):
+
+Home (logo/icon)
+
+Account Settings
+
+Reports
+
+Feedback
+
+Implement destination screens as working stubs (content + proper titles) so navigation is usable now.
+
+Architecture constraints:
+
+Jetpack Compose + Material 3, Navigation-Compose, Hilt, Kotlinx Coroutines/Flows.
+
+No new heavy deps; use AndroidX Activity Result APIs for permissions (no accompanist-permissions).
+
+Reuse existing DI, theme, typography, buttons, text fields from Part 1.
+
+Keep tokens, auth state, and health banner behavior intact.
+
+Create/Modify these files (return full contents)
+1) Navigation
+
+ui/navigation/Destinations.kt – sealed object destinations:
+
+Home, AccountSettings, Reports, Feedback, Analysis (next step target)
+
+ui/navigation/AppNavHost.kt – update graph:
+
+Entry after auth → Home
+
+Add composables for HomeScreen, AccountSettingsScreen, ReportsScreen, FeedbackScreen
+
+Add placeholder AnalysisScreen route (simple text; real implementation in Part 3)
+
+2) Main scaffold with bottom bar
+
+ui/main/MainScaffold.kt – Scaffold with:
+
+LargeTitleTopBar (from our design system) driven by current destination label
+
+BottomBar with 4 items, keeping state + back stack aware highlighting
+
+Icons: use Material Icons Rounded; map them:
+
+Home: Apps or DonutLarge (or a custom vector in res/drawable/ic_logo.xml)
+
+Account: Person
+
+Reports: Description
+
+Feedback: HeadsetMic (or Forum)
+
+Integrate MainScaffold around each bottom-tab destination.
+
+3) Home screen (Apple-style)
+
+ui/home/HomeScreen.kt
+
+Layout:
+
+Large title: “Home” (or localized)
+
+Card with soft background (20dp radius, subtle shadow) containing:
+
+Short description of posture analysis (2–4 lines, readable)
+
+PrimaryButton Start analysis
+
+On click → HomeViewModel.onStartAnalysis()
+
+ui/home/HomeViewModel.kt
+
+Holds UI state: permissionDialogVisible, permissionError: String?
+
+Exposes onStartAnalysis(), onOpenSettings(), onDismissPermissionDialog().
+
+4) Permissions helper
+
+core/permissions/Permissions.kt
+
+Provide rememberMultiplePermissionsLauncher() using Activity Result APIs for:
+
+android.permission.CAMERA
+
+For Android 13+: android.permission.READ_MEDIA_IMAGES
+
+For ≤ Android 12: android.permission.READ_EXTERNAL_STORAGE
+
+Utility areAllGranted(result: Map<String, Boolean>): Boolean
+
+Deep link to app settings via Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg"))
+
+5) Other destination stubs (styled)
+
+ui/settings/AccountSettingsScreen.kt – show email from current user + buttons: “Edit profile (disabled)”, “Change password (disabled)”.
+
+ui/reports/ReportsScreen.kt – empty state card: “No reports yet”.
+
+ui/feedback/FeedbackScreen.kt – card with text: “Have questions? Contact support”, button opens email intent (mailto: placeholder address).
+
+6) Wire everything in MainActivity.kt
+
+If user is authenticated, start in Home within MainScaffold; otherwise Auth flow stays as in Part 1.
+
+Keep the health banner at the top if you already implemented it.
+
+7) Strings, theming, icons
+
+Add strings in res/values/strings.xml:
+
+home_title, home_description, start_analysis, bottom_home, bottom_settings, bottom_reports, bottom_feedback, perm_title, perm_rationale, open_settings, cancel
+
+If you used a custom logo icon, create res/drawable/ic_logo.xml as a vector.
+
+Colors and typography continue to come from core/designsystem (Inter fonts, #0A84FF accents, rounded 20dp shapes).
+
+Behavior & UX (must implement)
+
+Press Start analysis:
+
+Ask for CAMERA + media/photos permissions using our helper.
+
+If granted → navigate to "analysis".
+
+If any denied (including “Don’t ask again”) → show Cupertino-style modal:
+
+Title: ${string/perm_title}
+
+Text: ${string/perm_rationale}
+
+Buttons: Open Settings (deep link) / Cancel
+
+Bottom bar:
+
+Persistent across Home/Account/Reports/Feedback
+
+Current tab highlighted; back stack preserved per tab
+
+All screens scrollable when needed, with large title collapsing behavior preserved.
+
+Acceptance criteria
+
+App builds and runs; after auth, user lands on Home with description and Start analysis CTA.
+
+Tapping CTA requests permissions correctly depending on Android version.
+
+When granted → navigates to "analysis" route (placeholder).
+
+Bottom bar shows 4 items and navigates between screens with stateful back stack.
+
+Style matches our Apple-inspired theme from Part 1 (rounded cards, subtle shadows, accent blue).
+
+Output format:
+Return all created/changed files as separate code blocks with complete content. No placeholders, no TODOs, no “we’ll implement later” comments.

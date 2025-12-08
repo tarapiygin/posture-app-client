@@ -1,0 +1,192 @@
+Cursor Prompt — Part 3: Camera Screen + Orientation Overlay + Save & Processing handoff
+
+You are an expert Android engineer. Extend the existing Kotlin/Jetpack Compose app (Parts 1–2 done) with a Camera Analysis screen. Keep the Apple-inspired look from our design system. No TODOs or placeholders. Return full file contents.
+
+Goal (this part):
+
+Implement the route Analysis (navigated from Home’s “Start analysis”).
+
+Show a camera preview (CameraX) with a semi-transparent overlay:
+
+a horizon line that rotates by device roll,
+
+live pitch/roll readouts,
+
+hints (“Tilt left/right”, “Raise/lower”) that turn green when aligned (tolerance ±2° roll, ±5° pitch).
+
+A big shutter button takes a photo, saves to app-private storage, returns the absolute file path, then navigates to Processing screen.
+
+On Processing, show full-screen loader: “Изображение обрабатывается”. (Next part will run on-device Mediapipe; here we just simulate a start and hold the UI.)
+
+Technical constraints
+
+Camera: CameraX (PreviewView + ImageCapture), portrait, aspect ratio 4:3, rotation set from display.
+
+Sensors: SensorManager + TYPE_ROTATION_VECTOR → compute pitch (up/down) & roll (left/right) in degrees.
+
+Smoothing: simple low-pass filter to avoid jitter; update at sensor cadence.
+
+Overlay: Jetpack Compose Canvas on top of the preview, semi-transparent, 60 fps max (throttle with LaunchedEffect).
+
+Storage: Save JPEG into context.filesDir/captures/ with timestamp name; ensure directories exist; write EXIF orientation.
+
+Permissions: Reuse the permissions helper from Part 2 (CAMERA + media). If not granted on entering the screen, request; if denied → show the same rationale dialog.
+
+Navigation: On success capture → navigate("processing?path=<encoded-abs-path>"). Provide a safe encoder/decoder for file paths.
+
+Create/Modify these files (return full contents)
+1) Core — Orientation & Camera
+
+core/orientation/OrientationManager.kt
+A lifecycle-aware class that:
+
+registers a SensorEventListener for TYPE_ROTATION_VECTOR,
+
+computes a rotation matrix and orientation angles,
+
+exposes StateFlow<OrientationAngles> with pitchDeg, rollDeg, azimuthDeg (azimuth reserved),
+
+applies a low-pass filter (alpha = 0.1f) to stabilize,
+
+start()/stop() methods; no memory leaks.
+
+core/camera/CameraController.kt
+A small controller wrapping CameraX:
+
+bindToLifecycle(lifecycleOwner, previewView, targetRotation),
+
+internal ImageCapture with CAPTURE_MODE_MINIMIZE_LATENCY, JPEG quality ~90,
+
+suspend fun takePicture(outputFile: File): Result<File> using imageCapture.takePicture(Executor) and suspendCancellableCoroutine,
+
+setTorch(enabled: Boolean) (keep default off).
+
+core/storage/ImageSaver.kt
+
+fun createCaptureFile(ctx): File → {filesDir}/captures/IMG_yyyyMMdd_HHmmss.jpg
+
+fun writeExifOrientation(file: File, rotationDegrees: Int) (use ExifInterface).
+
+core/navigation/NavArgs.kt
+
+helpers to encode/decode absolute file paths for safe Nav arguments (URL encode with Base64 or Uri.encode).
+
+2) UI — Analysis (Camera) Screen
+
+ui/analysis/AnalysisViewModel.kt
+
+State: isCapturing, pitch, roll, aligned (roll within ±2°, pitch within ±5°), error: String?.
+
+Methods: onAppear() (start orientation), onDisappear() (stop), onShoot() (guard against re-entry), onErrorShown().
+
+ui/analysis/HorizonOverlay.kt
+
+@Composable fun HorizonOverlay(pitch: Float, roll: Float, aligned: Boolean)
+
+Draw a rotated horizon line across the width (rotation = -roll), center crosshair, text badges (“Tilt left/right”, “Raise/lower”), color = green when aligned else accent blue; semi-transparent card background (20dp radius).
+
+ui/analysis/AnalysisScreen.kt
+
+AndroidView(PreviewView) full screen, bound via CameraController.bindToLifecycle.
+
+Overlay: HorizonOverlay + small chips showing pitch° / roll°.
+
+Bottom area: large shutter button (Apple style; 72–84dp), secondary buttons (Back, optional Torch).
+
+On shutter:
+
+create file with ImageSaver.createCaptureFile(ctx),
+
+call CameraController.takePicture(file),
+
+write EXIF orientation,
+
+navigate to Processing route with encoded path.
+
+If isCapturing true → dark scrim + progress indicator + text “Изображение обрабатывается”.
+
+3) UI — Processing Screen
+
+ui/processing/ProcessingScreen.kt
+
+Reads arg path (decoded absolute path).
+
+Shows loader (“Изображение обрабатывается”).
+
+Placeholder for Part 4: immediately after composition, start a coroutine that keeps the loader (do not finish), or navigate onward when the next part is implemented.
+
+4) Navigation updates
+
+ui/navigation/Destinations.kt — add Processing(path: String) and route pattern processing?path={path}.
+
+ui/navigation/AppNavHost.kt — add composables:
+
+composable(Analysis.route) → AnalysisScreen(...)
+
+composable(Processing.routePattern, arguments = listOf(navArgument("path"){ type = NavType.StringType; nullable=false })) → ProcessingScreen(...)
+
+Ensure Home’s Start analysis still navigates to Analysis.
+
+5) Manifest & Gradle
+
+AndroidManifest.xml
+
+Ensure android.permission.CAMERA is declared (already requested in Part 2 at runtime).
+
+Lock portrait for the single activity or keep sensor but design for portrait (choose one and implement consistently).
+
+app/build.gradle
+
+Add CameraX dependencies:
+
+implementation("androidx.camera:camera-core:1.3.4")
+implementation("androidx.camera:camera-camera2:1.3.4")
+implementation("androidx.camera:camera-lifecycle:1.3.4")
+implementation("androidx.camera:camera-view:1.3.4")
+implementation("androidx.exifinterface:exifinterface:1.3.7")
+
+
+Keep existing Compose/Hilt/DataStore/Retrofit setup.
+
+If not present, add vectorDrawables.useSupportLibrary = true.
+
+Behavior & UX (must implement)
+
+Overlay:
+
+roll ∈ (−2°, +2°) AND pitch ∈ (−5°, +5°) → show “Aligned” state (green hints); else show directional hints (left/right, up/down).
+
+The horizon line rotates smoothly as roll changes.
+
+Shutter:
+
+Disable during capture (isCapturing=true).
+
+On success → navigate to Processing with file path; on failure → show error snackbar and re-enable.
+
+Processing screen:
+
+Full-screen loader with text “Изображение обрабатывается”, card style consistent with our theme.
+
+Receives and displays the image path (for debugging subtitle).
+
+Lifecycle:
+
+OrientationManager registers in onAppear (DisposableEffect), unregisters in onDisappear.
+
+CameraController binds to LifecycleOwner from LocalLifecycleOwner.
+
+Acceptance criteria
+
+Entering Analysis requests camera/media permissions if missing; otherwise shows live preview.
+
+Overlay shows real-time pitch/roll and a rotating horizon; becomes green when aligned.
+
+Tapping shutter saves a JPEG under filesDir/captures/…, writes EXIF orientation, and navigates to Processing with the absolute path.
+
+Processing screen shows loader “Изображение обрабатывается”.
+
+Code compiles and runs without placeholders; style matches our Apple-inspired UI (rounded cards, accent blue, soft shadows).
+
+Output format:
+Return all created/changed files as separate code blocks with complete content. No TODOs, no stubs.

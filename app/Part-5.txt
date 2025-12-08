@@ -1,0 +1,277 @@
+Cursor Prompt — Part 5: Edit Landmarks (drag, magnifier, reference, history, finalize)
+
+You are an expert Android engineer. Extend the existing Kotlin/Jetpack Compose app (Parts 1–4 done; we already navigate to EditLandmarks with a cropped image and an on-device pose result). Implement a fully interactive Edit Landmarks screen. Keep the Apple-inspired design system. No TODOs or placeholders – provide full file contents.
+(Images for the top-right reference panel can use simple built-in placeholder vectors; I will replace them later.)
+
+What we already have (context):
+
+We enter EditLandmarksScreen(resultId: String, imagePath: String) right after ProcessingScreen.
+
+ProcessingStore holds an auto set of detected landmarks for this resultId (normalized 0..1).
+
+Image at imagePath is cropped & EXIF-fixed.
+
+Reduced landmark set + synthetic points (see below) must be used for editing/rendering.
+
+Landmarks to use (reduced + synthetic)
+
+Editable base points (10):
+
+LEFT_ANKLE, RIGHT_ANKLE
+
+LEFT_KNEE, RIGHT_KNEE
+
+LEFT_HIP, RIGHT_HIP
+
+LEFT_SHOULDER, RIGHT_SHOULDER
+
+LEFT_EAR, RIGHT_EAR
+
+Synthetic (non-editable, recomputed live):
+
+TIBIAL_TUBEROSITY_LEFT = kneeL + 0.15 * (ankleL - kneeL)
+
+TIBIAL_TUBEROSITY_RIGHT = kneeR + 0.15 * (ankleR - kneeR)
+
+JUGULAR_NOTCH = mid(LEFT_SHOULDER, RIGHT_SHOULDER) + down(0.07 * distance(shoulderCenter, hipCenter))
+
+All coordinates are normalized (0..1) relative to the displayed image size. Synthetic points are rendered but not draggable (distinct style).
+
+UX requirements (must implement exactly)
+
+Full-screen image of the patient with pinch-to-zoom and pan (two-finger). Smooth, inertial not required.
+
+Compose transformation state with scale, translationX/Y.
+
+Provide world ↔ screen mapping helpers for hit-testing and drawing.
+
+Editing points
+2.1. Tap to select a point (increase its z-order & highlight).
+2.2. Drag to move the selected point (one finger). During drag:
+2.3. Top-left magnifier (square) appears: shows a zoomed local region around the pointer, with a center crosshair for precise alignment. Hides on pointer up.
+2.4. Top-right reference panel (square) appears while a point is selected (tap/drag): shows a reference image and a caption with the point’s name (“LEFT EAR”, etc.). Uses placeholder drawables.
+2.5. A question icon overlays the top-right image; tapping it opens a bottom sheet with a textual hint/description for the selected point. The sheet stays open until the user taps anywhere on the editing screen.
+
+Bottom action bar (icons):
+
+Back (Undo): revert the last change (including reverting from a pinned state if pressed before leaving the screen).
+
+Reset: restore all points to the auto positions produced by MediaPipe.
+
+Pin (Finalize): finish editing, recompute synthetic points, save a final landmark set for this resultId in ProcessingStore, and navigate to Indicators (Part 6 placeholder) screen. (Create a simple IndicatorsPlaceholderScreen with a message; Part 6 will draw metrics.)
+
+Visuals
+
+Editable points: solid accent fill + white stroke; active point is larger.
+
+Synthetic points: hollow circle (no fill) + dashed stroke; not touchable.
+
+Draw subtle labels (short codes) near points (e.g., LE, RE, LS, RS, LH, RH, LK, RK, LA, RA, TTL, TTR, JN).
+
+Magnifier: 2×–3× zoom; shows the same transformed image content, clipped to a rounded 8–12dp rect; crosshair at center.
+
+Hit-testing
+
+Touch radius in screen px adapts with zoom (e.g., base 16dp mapped through scale).
+
+Only base points are draggable.
+
+Performance & state
+
+Decode the image efficiently (downscale if needed; the crop is already small).
+
+All computations on a background dispatcher; UI remains responsive.
+
+Keep an undo stack of landmark states (push on pointer up).
+
+Recompute synthetic points on every base point change.
+
+Persist final set in ProcessingStore before navigating away.
+
+Create/Modify these files (return full contents)
+1) Domain & data
+
+domain/landmarks/Landmark.kt (already exists) – extend with editable: Boolean, code: String (short label).
+
+domain/landmarks/LandmarkSet.kt – add helpers:
+
+fun withUpdated(name: String, x: Float, y: Float): LandmarkSet
+
+fun recomputeSynthetic(): LandmarkSet (apply formulas above)
+
+fun baseOnly(): List<Landmark>
+
+data/processing/ProcessingStore.kt – add:
+
+fun getAuto(resultId: String): LandmarkSet?
+
+fun putFinal(resultId: String, data: LandmarkSet)
+
+fun getFinal(resultId: String): LandmarkSet?
+
+Keep previous methods; ensure thread-safe access.
+
+2) UI – Edit Landmarks
+
+ui/edit/EditLandmarksViewModel.kt
+
+Loads auto set via resultId and builds an editable working copy with the reduced base points + computed synthetic points.
+
+Holds:
+
+scale, offsetX, offsetY (for image transform)
+
+activeName: String?
+
+showMagnifier: Boolean + magnifierCenter: Offset (in image space)
+
+showReference: Boolean (visible while a point is selected/dragging)
+
+showHelpSheet: Boolean + helpText: String
+
+undoStack: ArrayDeque<LandmarkSet>
+
+Methods:
+
+select(name)
+
+startDrag(name, imagePos) → show magnifier
+
+dragTo(imagePos) → update point, recompute synthetic
+
+endDrag() → push state to undoStack, hide magnifier
+
+undo() → pop and restore
+
+reset() → restore auto set
+
+finalize() → save final set to ProcessingStore and navigate to Indicators placeholder
+
+onOpenHelp(name) → open sheet with description text
+
+onDismissHelp()
+
+Expose read-only StateFlow<UiState>.
+
+ui/edit/EditLandmarksScreen.kt
+
+Composable that:
+
+Loads the bitmap from imagePath.
+
+Renders the image under a transform (scale + pan).
+
+Draws all points (base + synthetic) with proper styles and labels.
+
+Handles gestures:
+
+Pinch-zoom + pan (two fingers).
+
+Tap/drag on points (one finger).
+
+Show MagnifierOverlay (top-left) while dragging.
+
+Show ReferencePanel (top-right) while a point is active; title under it with the point name.
+
+Question icon on the reference panel toggles bottom sheet with help text.
+
+Bottom bar with three rounded icon buttons: Undo, Pin/Finalize, Reset (order matches your screenshots: back/undo at left, pin center, reset right).
+
+ui/edit/MagnifierOverlay.kt
+
+@Composable fun MagnifierOverlay(source: Bitmap, centerImageSpace: Offset, imageToScreen: (Offset)->Offset, zoom: Float = 3f)
+
+Renders a square 96–128dp magnifier at top-left of the screen:
+
+Computes a src rect around centerImageSpace and draws it scaled to the box.
+
+Draws a red crosshair in the center.
+
+Rounded corners & subtle shadow.
+
+ui/edit/ReferencePanel.kt
+
+Square panel at top-right that shows:
+
+Placeholder image (per active point)
+
+A small question icon button at the top-right corner of the panel
+
+A caption under the panel with the selected point’s display name
+
+ui/edit/PointStyles.kt
+
+Centralize sizes, colors, radii for point drawing. Provide drawPoint(canvas, position, active, editable).
+
+ui/indicators/IndicatorsPlaceholderScreen.kt
+
+Simple card with: “Indicators screen will be implemented in Part 6.” and a Continue button → popBackStack to Home.
+
+3) Core – transforms & hit-test
+
+core/graphics/Transforms.kt
+
+class ImageTransform(var scale: Float, var tx: Float, var ty: Float)
+
+fun imageToScreen(image: Offset): Offset / fun screenToImage(screen: Offset): Offset
+
+Clamp panning so the image cannot disappear entirely.
+
+core/gestures/ComposeGestures.kt
+
+Helpers for combined transform + drag:
+
+detectTransformGestures for pinch/rotate=false + pan
+
+detectPointDragGestures that prioritizes point hit-test when near a point; otherwise lets transform handle the pan.
+
+4) Resources
+
+res/drawable/ placeholder vectors for reference panel:
+
+ref_left_ear.xml, ref_right_ear.xml, ref_left_shoulder.xml, … (all base points)
+
+ic_help_outline.xml (question icon)
+
+res/values/strings.xml add:
+
+edit_title, hint_aligned, btn_undo, btn_reset, btn_pin,
+
+help texts for each point (short descriptions as strings).
+
+5) Navigation updates
+
+ui/navigation/Destinations.kt – add IndicatorsPlaceholder route.
+
+ui/navigation/AppNavHost.kt – add composable for IndicatorsPlaceholder.
+
+Behavior details (must match screenshots)
+
+Magnifier is shown only while dragging; hides on release.
+
+Reference panel is shown while a point is selected (from tap or during dragging) and until the user selects another point or taps empty space.
+
+Help bottom sheet appears over the editor and stays until the user taps anywhere on the editor.
+
+Undo reverts the last committed state (committed on drag end, reset, or finalize request).
+
+Reset restores the auto set saved in ProcessingStore.
+
+Pin/Finalize saves the current final set (including synthetic points) and navigates to IndicatorsPlaceholder.
+
+Acceptance criteria
+
+Image covers the screen; two-finger gestures zoom/pan smoothly.
+
+Points can be selected and dragged; magnifier and reference panel behave as described.
+
+Synthetic points recompute live and are not draggable.
+
+Bottom sheet with help text appears when the question icon is tapped and dismisses on outside tap.
+
+Undo, Reset, and Finalize work; finalize persists a final set for the resultId and navigates to the Indicators placeholder.
+
+Code compiles and runs; all files are provided with full content; Apple-like visual style is preserved.
+
+Output format:
+Return all created/modified files as separate code blocks with complete contents. No TODOs.

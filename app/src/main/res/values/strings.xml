@@ -107,6 +107,7 @@
     <string name="point_right_shoulder">Right shoulder</string>
     <string name="point_left_ear">Left ear</string>
     <string name="point_right_ear">Right ear</string>
+    <string name="point_right_c7">C7 (right)</string>
     <string name="help_left_ankle">Place the marker on the lateral malleolus at the outer ankle.</string>
     <string name="help_right_ankle">Place the marker on the lateral malleolus at the outer ankle.</string>
     <string name="help_left_knee">Align with the center of the patella on the left knee.</string>
@@ -117,6 +118,7 @@
     <string name="help_right_shoulder">Place over the right acromion of the shoulder.</string>
     <string name="help_left_ear">Align with the tragus of the left ear.</string>
     <string name="help_right_ear">Align with the tragus of the right ear.</string>
+    <string name="help_right_c7">Approximate the C7 vertebra at the base of the neck above the shoulders.</string>
     <string name="help_tibial_tuberosity_left">Reference point midway between left knee and ankle along the tibia.</string>
     <string name="help_tibial_tuberosity_right">Reference point midway between right knee and ankle along the tibia.</string>
     <string name="help_jugular_notch">Midpoint between shoulders, slightly below, at the jugular notch.</string>
@@ -126,12 +128,15 @@
     <string name="indicators_placeholder_id">Result: %1$s</string>
     <string name="quick_analysis">Quick analysis</string>
     <string name="front_view_title">Front view analysis</string>
+    <string name="right_side_title">Right side analysis</string>
     <string name="lbl_ears">Ears</string>
     <string name="lbl_shoulders">Shoulders</string>
     <string name="lbl_asis">ASIS</string>
     <string name="lbl_knees">Knees</string>
     <string name="lbl_feet">Feet</string>
     <string name="lbl_body_angle">Body deviation</string>
+    <string name="label_cva">CVA</string>
+    <string name="angle_body_right">Body angle</string>
     <string name="tab_front">Front</string>
     <string name="tab_right_side">Right side</string>
     <string name="tab_results">Results</string>

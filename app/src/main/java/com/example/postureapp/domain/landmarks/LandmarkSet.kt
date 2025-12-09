@@ -35,19 +35,28 @@ data class LandmarkSet(
             points.firstOrNull { it.point == point }
         }
 
-    fun recomputeSynthetic(): LandmarkSet {
-        // Собираем карту ВСЕХ базовых точек, которые нужны для вычислений
-        val baseMap = baseAll().associateBy { it.point }
-        // Если не все необходимые базовые точки есть — лучше не трогать набор
-        if (baseMap.size < AnatomicalPoint.BasePointsAll.size) return this
-        // Считаем синтетические точки из baseMap
-        val synthetic = computeSynthetic(baseMap)
-        // Берём только те базовые точки, которые должны быть видимыми в UI
-        val visibleBase = AnatomicalPoint.BasePointsEditable.mapNotNull { baseMap[it] }
-        // Добавляем синтетические точки в заданном порядке
-        val orderedSynthetic = AnatomicalPoint.SyntheticPoints.mapNotNull { synthetic[it] }
-        // Возвращаем новый LandmarkSet: только видимые базовые + синтетика
-        return copy(points = visibleBase + orderedSynthetic)
+    /**
+     * Набор для фронт-экрана: только нужные точки, все редактируемые.
+     * Синтетика (TTL/TTR/JN) вычисляется один раз, если отсутствует.
+     */
+    fun toFrontSide(): LandmarkSet {
+        val baseMap = points.associateBy { it.point }
+        val synthetic = computeFrontSynthetic(baseMap)
+        val all = mergePoints(synthetic.values)
+        val visible = AnatomicalPoint.FrontVisiblePoints.mapNotNull { all.findPoint(it) }
+        return copy(points = visible)
+    }
+
+    /**
+     * Набор для правого экрана: RA, RK, RH, RS, RE, C7.
+     * C7 вычисляется один раз, если отсутствует.
+     */
+    fun toRightSide(): LandmarkSet {
+        val baseMap = points.associateBy { it.point }
+        val synthetic = computeRightSynthetic(baseMap)
+        val all = mergePoints(synthetic.values)
+        val visible = RightSidePoints.VisiblePoints.mapNotNull { all.findPoint(it) }
+        return copy(points = visible)
     }
 
     private fun computeSynthetic(base: Map<AnatomicalPoint, Landmark>): Map<AnatomicalPoint, Landmark> {
@@ -87,6 +96,94 @@ data class LandmarkSet(
             AnatomicalPoint.JUGULAR_NOTCH to jugular
         )
     }
+
+    private fun computeFrontSynthetic(base: Map<AnatomicalPoint, Landmark>): Map<AnatomicalPoint, Landmark> {
+        val result = mutableMapOf<AnatomicalPoint, Landmark>()
+        val leftKnee = base[AnatomicalPoint.LEFT_KNEE]
+        val leftAnkle = base[AnatomicalPoint.LEFT_ANKLE]
+        if (leftKnee != null && leftAnkle != null) {
+            result[AnatomicalPoint.TIBIAL_TUBEROSITY_LEFT] =
+                interpolate(leftKnee, leftAnkle, 0.15f, AnatomicalPoint.TIBIAL_TUBEROSITY_LEFT)
+        }
+        val rightKnee = base[AnatomicalPoint.RIGHT_KNEE]
+        val rightAnkle = base[AnatomicalPoint.RIGHT_ANKLE]
+        if (rightKnee != null && rightAnkle != null) {
+            result[AnatomicalPoint.TIBIAL_TUBEROSITY_RIGHT] =
+                interpolate(rightKnee, rightAnkle, 0.15f, AnatomicalPoint.TIBIAL_TUBEROSITY_RIGHT)
+        }
+        val leftShoulder = base[AnatomicalPoint.LEFT_SHOULDER]
+        val rightShoulder = base[AnatomicalPoint.RIGHT_SHOULDER]
+        val leftHip = base[AnatomicalPoint.LEFT_HIP]
+        val rightHip = base[AnatomicalPoint.RIGHT_HIP]
+        if (leftShoulder != null && rightShoulder != null && leftHip != null && rightHip != null) {
+            val shoulderCenter = midpoint(leftShoulder, rightShoulder)
+            val hipCenter = midpoint(leftHip, rightHip)
+            val shoulderHipDistance = distance(shoulderCenter, hipCenter)
+            val jugularOffset = 0.07f * shoulderHipDistance
+            val jugularY = (shoulderCenter.y + jugularOffset).coerceIn(0f, 1f)
+            result[AnatomicalPoint.JUGULAR_NOTCH] = createSynthetic(
+                point = AnatomicalPoint.JUGULAR_NOTCH,
+                x = shoulderCenter.x,
+                y = jugularY,
+                z = null,
+                visibility = combineVisibility(
+                    leftShoulder.visibility,
+                    rightShoulder.visibility,
+                    leftHip.visibility,
+                    rightHip.visibility
+                )
+            )
+        }
+        return result
+    }
+
+    private fun computeRightSynthetic(base: Map<AnatomicalPoint, Landmark>): Map<AnatomicalPoint, Landmark> {
+        val result = mutableMapOf<AnatomicalPoint, Landmark>()
+        val rightShoulder = base[AnatomicalPoint.RIGHT_SHOULDER]
+        val leftShoulder = base[AnatomicalPoint.LEFT_SHOULDER]
+        val rightHip = base[AnatomicalPoint.RIGHT_HIP]
+        val leftHip = base[AnatomicalPoint.LEFT_HIP]
+        val rightEar = base[AnatomicalPoint.RIGHT_EAR]
+
+        if (rightShoulder != null && leftShoulder != null && rightHip != null && leftHip != null && rightEar != null) {
+            val shoulderMid = midpoint(leftShoulder, rightShoulder)
+            val hipMid = midpoint(leftHip, rightHip)
+            val trunkVec = normalize(shoulderMid - hipMid)
+            val trunkLen = distance(shoulderMid, hipMid)
+
+            val neckVec = normalize(rightEar.toOffset() - rightShoulder.toOffset())
+            val neckLen = distance(rightEar, rightShoulder)
+
+            val c7Offset = shoulderMid +
+                trunkVec * (0.06f * trunkLen) +
+                neckVec * (0.20f * neckLen)
+
+            result[AnatomicalPoint.RIGHT_C7] = createSynthetic(
+                point = AnatomicalPoint.RIGHT_C7,
+                x = c7Offset.x.coerceIn(0f, 1f),
+                y = c7Offset.y.coerceIn(0f, 1f),
+                z = null,
+                visibility = combineVisibility(
+                    rightEar.visibility,
+                    rightShoulder.visibility,
+                    leftShoulder.visibility,
+                    rightHip.visibility,
+                    leftHip.visibility
+                )
+            )
+        }
+
+        return result
+    }
+
+    private fun mergePoints(newPoints: Collection<Landmark>): List<Landmark> {
+        val map = points.associateBy { it.point }.toMutableMap()
+        newPoints.forEach { map[it.point] = it }
+        return map.values.toList()
+    }
+
+    private fun List<Landmark>.findPoint(point: AnatomicalPoint): Landmark? =
+        firstOrNull { it.point == point }
 }
 
 private fun interpolate(
@@ -112,6 +209,8 @@ private fun midpoint(first: Landmark, second: Landmark): Offset {
 private fun distance(first: Offset, second: Offset): Float {
     return hypot(first.x - second.x, first.y - second.y)
 }
+
+private fun distance(first: Landmark, second: Landmark): Float = distance(first.toOffset(), second.toOffset())
 
 private fun lerp(start: Float?, end: Float?, factor: Float): Float? {
     return when {
@@ -143,4 +242,18 @@ private fun createSynthetic(
         editable = point.editable,
         code = point.overlayCode
     )
+}
+
+private fun Landmark.toOffset(): Offset = Offset(x, y)
+
+private operator fun Offset.minus(other: Offset): Offset = Offset(x - other.x, y - other.y)
+
+private operator fun Offset.plus(other: Offset): Offset = Offset(x + other.x, y + other.y)
+
+private operator fun Offset.times(factor: Float): Offset = Offset(x * factor, y * factor)
+
+private fun normalize(vector: Offset): Offset {
+    val length = hypot(vector.x, vector.y)
+    if (length < 1e-6f) return Offset.Zero
+    return Offset(vector.x / length, vector.y / length)
 }

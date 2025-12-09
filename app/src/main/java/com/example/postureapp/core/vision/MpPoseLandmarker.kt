@@ -47,13 +47,11 @@ class MpPoseLandmarker @Inject constructor(
 
         val anatomical = buildAnatomicalLandmarks(posePoints)
 
-        val set = LandmarkSet(
+        LandmarkSet(
             imageWidth = bitmap.width,
             imageHeight = bitmap.height,
             points = anatomical
         )
-
-        set.recomputeSynthetic()
     }
 
     fun close() {

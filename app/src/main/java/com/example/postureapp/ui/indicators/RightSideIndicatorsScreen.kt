@@ -1,63 +1,84 @@
 package com.example.postureapp.ui.indicators
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.postureapp.R
+import com.example.postureapp.ui.indicators.right.RightIndicatorsPanel
+import com.example.postureapp.ui.indicators.right.RightIndicatorsViewModel
 
 @Composable
 fun RightSideIndicatorsScreen(
     resultId: String,
     imagePath: String,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: RightIndicatorsViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(resultId, imagePath) {
+        viewModel.load(resultId, imagePath)
+    }
+
     Surface(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.align(Alignment.Start)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back)
-                )
-            }
-            Text(
-                text = stringResource(R.string.tab_right_side),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+        val landmarks = uiState.landmarks
+        when {
+            landmarks != null -> RightIndicatorsPanel(
+                imagePath = uiState.imagePath,
+                landmarksFinal = landmarks,
+                onResetToEdit = onBack,
+                modifier = Modifier.fillMaxSize()
             )
+
+            uiState.isLoading -> LoadingPlaceholder(onBack = onBack)
+            else -> ErrorPlaceholder(onBack = onBack)
+        }
+    }
+}
+
+@Composable
+private fun LoadingPlaceholder(onBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text(
-                text = stringResource(R.string.right_side_stub, resultId),
+                text = stringResource(R.string.edit_landmarks_error_missing),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = onBack) {
                 Text(text = stringResource(R.string.action_back))
             }
         }
     }
+}
+
+@Composable
+private fun ErrorPlaceholder(onBack: () -> Unit) {
+    LoadingPlaceholder(onBack = onBack)
 }
 

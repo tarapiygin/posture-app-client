@@ -32,7 +32,7 @@ enum class AnatomicalPoint(
     LEFT_KNEE(
         labelRes = R.string.point_left_knee,
         overlayCode = "LK",
-        editable = false,
+        editable = true,
         referenceDrawableRes = R.drawable.ref_left_knee,
         helpTextRes = R.string.help_left_knee,
         synthetic = false
@@ -40,7 +40,7 @@ enum class AnatomicalPoint(
     RIGHT_KNEE(
         labelRes = R.string.point_right_knee,
         overlayCode = "RK",
-        editable = false,
+        editable = true,
         referenceDrawableRes = R.drawable.ref_right_knee,
         helpTextRes = R.string.help_right_knee,
         synthetic = false
@@ -93,6 +93,14 @@ enum class AnatomicalPoint(
         helpTextRes = R.string.help_right_ear,
         synthetic = false
     ),
+    RIGHT_C7(
+        labelRes = R.string.point_right_c7,
+        overlayCode = "C7",
+        editable = true,
+        referenceDrawableRes = R.drawable.ref_right_c7,
+        helpTextRes = R.string.help_right_c7,
+        synthetic = true
+    ),
     TIBIAL_TUBEROSITY_LEFT(
         labelRes = R.string.point_tibial_tuberosity_left,
         overlayCode = "TTL",
@@ -122,5 +130,19 @@ enum class AnatomicalPoint(
         val BasePointsAll: List<AnatomicalPoint> = entries.filter { !it.synthetic }
         val BasePointsEditable: List<AnatomicalPoint> = entries.filter { it.editable }
         val SyntheticPoints: List<AnatomicalPoint> = entries.filter { it.synthetic }
+        // Points shown on front editing screen (all editable)
+        val FrontVisiblePoints: List<AnatomicalPoint> = listOf(
+            TIBIAL_TUBEROSITY_LEFT,
+            TIBIAL_TUBEROSITY_RIGHT,
+            JUGULAR_NOTCH,
+            LEFT_EAR,
+            RIGHT_EAR,
+            LEFT_SHOULDER,
+            RIGHT_SHOULDER,
+            LEFT_HIP,
+            RIGHT_HIP,
+            LEFT_ANKLE,
+            RIGHT_ANKLE
+        )
     }
 }

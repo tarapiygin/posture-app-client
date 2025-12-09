@@ -19,12 +19,14 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 fun DrawScope.drawDottedVertical(
     x: Float,
@@ -188,6 +190,28 @@ fun DegreePill(
             ),
             color = color
         )
+    }
+}
+
+fun Modifier.positionAt(
+    xPx: Float,
+    yPx: Float,
+    parentWidth: Float,
+    alignEnd: Boolean = false
+): Modifier = this.layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints)
+    val x = if (alignEnd) {
+        (parentWidth - xPx - placeable.width).roundToInt()
+    } else {
+        xPx.roundToInt()
+    }
+    val y = (yPx - placeable.height / 2f).roundToInt()
+    val maxWidth = constraints.maxWidth
+    val maxHeight = constraints.maxHeight
+    val finalX = x.coerceIn(0, maxWidth - placeable.width)
+    val finalY = y.coerceIn(0, maxHeight - placeable.height)
+    layout(maxWidth, maxHeight) {
+        placeable.placeRelative(finalX, finalY)
     }
 }
 

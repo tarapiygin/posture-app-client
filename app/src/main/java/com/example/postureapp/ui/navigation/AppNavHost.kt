@@ -277,13 +277,18 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() },
                 onCropped = { finalPath ->
                     val hubRoute = Destinations.ReportHub.create(side).route
-                    runCatching { navController.getBackStackEntry(hubRoute) }
-                        .getOrNull()
-                        ?.savedStateHandle
-                        ?.apply {
-                            set("cropped_path", finalPath)
-                            set("cropped_side", side.name)
+                    var hubEntry = runCatching { navController.getBackStackEntry(hubRoute) }.getOrNull()
+                    if (hubEntry == null) {
+                        navController.navigate(hubRoute) {
+                            popUpTo(Destinations.ReportHub.create(side).route) { inclusive = false }
+                            launchSingleTop = true
                         }
+                        hubEntry = runCatching { navController.getBackStackEntry(hubRoute) }.getOrNull()
+                    }
+                    hubEntry?.savedStateHandle?.apply {
+                        set("cropped_path", finalPath)
+                        set("cropped_side", side.name)
+                    }
                     navController.popBackStack(hubRoute, false)
                 }
             )
@@ -337,6 +342,7 @@ fun AppNavHost(
             EditLandmarksScreen(
                 resultId = resultId,
                 imagePath = decodedPath,
+                side = side,
                 onBack = { navController.popBackStack() },
                 onNavigateToIndicators = { rid, path ->
                     val hubRoute = Destinations.ReportHub.create(side).route

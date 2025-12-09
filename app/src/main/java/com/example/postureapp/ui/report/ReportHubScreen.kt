@@ -60,10 +60,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.postureapp.R
 import com.example.postureapp.core.navigation.encodePath
 import com.example.postureapp.core.report.Side
-import com.example.postureapp.domain.landmarks.LandmarkSet
 import com.example.postureapp.domain.metrics.ComputeFrontMetricsUseCase
 import com.example.postureapp.domain.metrics.FrontMetrics
 import com.example.postureapp.ui.indicators.front.FrontIndicatorsPanel
+import com.example.postureapp.ui.indicators.right.RightIndicatorsPanel
 import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
@@ -283,12 +283,23 @@ private fun SideContent(
 
     when {
         !state.hasImage -> EmptyState(onTakePhoto = onTakePhoto, modifier = modifier)
-        state.hasFinal && state.finalLandmarks != null -> FrontIndicatorsPanel(
-            imagePath = state.croppedPath.orEmpty(),
-            landmarksFinal = state.finalLandmarks,
-            onResetToEdit = onResetToEdit,
-            modifier = modifier
-        )
+        state.hasFinal && state.finalLandmarks != null -> {
+            if (state.side == Side.RIGHT) {
+                RightIndicatorsPanel(
+                    imagePath = state.croppedPath.orEmpty(),
+                    landmarksFinal = state.finalLandmarks,
+                    onResetToEdit = onResetToEdit,
+                    modifier = modifier
+                )
+            } else {
+                FrontIndicatorsPanel(
+                    imagePath = state.croppedPath.orEmpty(),
+                    landmarksFinal = state.finalLandmarks,
+                    onResetToEdit = onResetToEdit,
+                    modifier = modifier
+                )
+            }
+        }
 
         else -> {
             Box(
@@ -308,7 +319,13 @@ private fun SideContent(
                     )
                 }
                 Surface(
-                    onClick = onStartProcessing,
+                    onClick = {
+                        if (state.hasAuto && state.resultId != null) {
+                            onResetToEdit()
+                        } else {
+                            onStartProcessing()
+                        }
+                    },
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier

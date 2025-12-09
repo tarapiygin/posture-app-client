@@ -70,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.postureapp.R
 import com.example.postureapp.core.designsystem.components.CustomTitleTopBar
+import com.example.postureapp.core.report.Side
 import com.example.postureapp.domain.landmarks.Landmark
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -82,6 +83,7 @@ import kotlinx.coroutines.withContext
 fun EditLandmarksScreen(
     resultId: String,
     imagePath: String,
+    side: Side,
     onBack: () -> Unit,
     onNavigateToIndicators: (String, String) -> Unit,
     modifier: Modifier = Modifier,
@@ -90,8 +92,8 @@ fun EditLandmarksScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val bitmap = rememberDecodedBitmap(imagePath)
 
-    LaunchedEffect(resultId, imagePath) {
-        viewModel.load(resultId, imagePath)
+    LaunchedEffect(resultId, imagePath, side) {
+        viewModel.load(resultId, imagePath, side)
     }
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->

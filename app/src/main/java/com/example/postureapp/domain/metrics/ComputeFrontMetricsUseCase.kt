@@ -15,11 +15,10 @@ import kotlin.math.sqrt
 class ComputeFrontMetricsUseCase @Inject constructor() {
 
     operator fun invoke(set: LandmarkSet): FrontMetrics? {
-        val normalized = set.recomputeSynthetic()
-        val width = normalized.imageWidth.toFloat().takeIf { it > 0f } ?: return null
-        val height = normalized.imageHeight.toFloat().takeIf { it > 0f } ?: return null
+        val width = set.imageWidth.toFloat().takeIf { it > 0f } ?: return null
+        val height = set.imageHeight.toFloat().takeIf { it > 0f } ?: return null
 
-        val map = normalized.points.associateBy { it.point }
+        val map = set.points.associateBy { it.point }
 
         fun point(name: AnatomicalPoint): Landmark? = map[name]
         fun toPx(landmark: Landmark): Offset =

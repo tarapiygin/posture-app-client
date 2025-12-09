@@ -97,3 +97,4 @@ class ReportCoordinator @Inject constructor(
 
     private fun newSession(): ReportSession = ReportSession(UUID.randomUUID().toString())
 }
+

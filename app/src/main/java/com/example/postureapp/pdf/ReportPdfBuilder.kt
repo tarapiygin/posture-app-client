@@ -61,18 +61,18 @@ class ReportPdfBuilder @Inject constructor(
                 }
             }
 
-            val rightTiles = data.right?.let { right ->
-                listOf(
-                    RightSegment.CVA,
-                    RightSegment.KNEE,
-                    RightSegment.HIP,
-                    RightSegment.SHOULDER,
-                    RightSegment.EAR
-                ).mapNotNull { segment ->
-                    ReportTileRenderer.renderRightTile(segment, right.imagePath, right.metrics, landmarks = right.landmarks, size = 240)
-                        ?.let { bmp -> segment to bmp }
-                }
-            }
+//            val rightTiles = data.right?.let { right ->
+//                listOf(
+//                    RightSegment.CVA,
+//                    RightSegment.KNEE,
+//                    RightSegment.HIP,
+//                    RightSegment.SHOULDER,
+//                    RightSegment.EAR
+//                ).mapNotNull { segment ->
+//                    ReportTileRenderer.renderRightTile(segment, right.imagePath, right.metrics, landmarks = right.landmarks, size = 240)
+//                        ?.let { bmp -> segment to bmp }
+//                }
+//            }
 
             doc.startPage(PdfDocument.PageInfo.Builder(a4Width, a4Height, 1).create()).also { page ->
                 page.canvas.drawColor(android.graphics.Color.WHITE)
@@ -95,12 +95,12 @@ class ReportPdfBuilder @Inject constructor(
                 doc.finishPage(page)
             }
 
-            doc.startPage(PdfDocument.PageInfo.Builder(a4Width, a4Height, 4).create()).also { page ->
-                page.canvas.drawColor(android.graphics.Color.WHITE)
-                drawPageHeader(page, context.getString(R.string.page_right_details), data.createdAt)
-                drawRightTiles(page, rightTiles, data.right?.metrics)
-                doc.finishPage(page)
-            }
+//            doc.startPage(PdfDocument.PageInfo.Builder(a4Width, a4Height, 4).create()).also { page ->
+//                page.canvas.drawColor(android.graphics.Color.WHITE)
+//                drawPageHeader(page, context.getString(R.string.page_right_details), data.createdAt)
+//                drawRightTiles(page, rightTiles, data.right?.metrics)
+//                doc.finishPage(page)
+//            }
 
             FileOutputStream(outFile).use { out ->
                 doc.writeTo(out)
@@ -123,8 +123,8 @@ class ReportPdfBuilder @Inject constructor(
     suspend fun renderFrontTile(level: FrontLevel, imagePath: String, landmarksFinal: com.example.postureapp.domain.landmarks.LandmarkSet) =
         ReportTileRenderer.renderFrontTile(level, imagePath, computeFrontMetrics(landmarksFinal))
 
-    suspend fun renderRightTile(segment: RightSegment, imagePath: String, landmarksFinal: com.example.postureapp.domain.landmarks.LandmarkSet) =
-        ReportTileRenderer.renderRightTile(segment, imagePath, computeRightMetrics(landmarksFinal))
+//    suspend fun renderRightTile(segment: RightSegment, imagePath: String, landmarksFinal: com.example.postureapp.domain.landmarks.LandmarkSet) =
+//        ReportTileRenderer.renderRightTile(segment, imagePath, computeRightMetrics(landmarksFinal))
 
     private fun computeFrontMetrics(set: com.example.postureapp.domain.landmarks.LandmarkSet): FrontMetrics {
         return com.example.postureapp.domain.metrics.ComputeFrontMetricsUseCase().invoke(set)

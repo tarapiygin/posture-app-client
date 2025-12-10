@@ -144,20 +144,21 @@ class ResultsTabViewModel @Inject constructor(
                 }
             }
         }
-        val rightTiles = right?.let { data ->
-            listOf(
-                RightSegment.CVA,
-                RightSegment.KNEE,
-                RightSegment.HIP,
-                RightSegment.SHOULDER,
-                RightSegment.EAR
-            ).mapNotNull { segment ->
-                ReportTileRenderer.renderRightTile(segment, data.imagePath, data.metrics, landmarks = data.landmarks, size = 360)?.let { bmp ->
-                    RightTilePreview(segment, bmp)
-                }
-            }
-        }
-        ReportPreview(frontPanel, rightPanel, frontTiles.orEmpty(), rightTiles.orEmpty())
+//        val rightTiles = right?.let { data ->
+//            listOf(
+//                RightSegment.CVA,
+//                RightSegment.KNEE,
+//                RightSegment.HIP,
+//                RightSegment.SHOULDER,
+//                RightSegment.EAR
+//            ).mapNotNull { segment ->
+//                ReportTileRenderer.renderRightTile(segment, data.imagePath, data.metrics, landmarks = data.landmarks, size = 360)?.let { bmp ->
+//                    RightTilePreview(segment, bmp)
+//                }
+//            }
+//        }
+//        ReportPreview(frontPanel, rightPanel, frontTiles.orEmpty(), rightTiles.orEmpty())
+        ReportPreview(frontPanel, rightPanel, frontTiles.orEmpty())
     }
 
     fun onShare() {
@@ -249,7 +250,7 @@ data class ReportPreview(
     val frontPanel: Bitmap?,
     val rightPanel: Bitmap?,
     val frontTiles: List<FrontTilePreview>,
-    val rightTiles: List<RightTilePreview>
+//    val rightTiles: List<RightTilePreview>
 )
 
 data class FrontTilePreview(

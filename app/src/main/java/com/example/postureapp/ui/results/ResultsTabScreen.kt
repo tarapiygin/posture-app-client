@@ -169,15 +169,15 @@ private fun ResultsContent(
                 )
             }
         }
-        item {
-            PageCard(title = stringResource(R.string.page_right_details)) {
-                TilesPage(
-                    tiles = state.preview?.rightTiles?.map { it.segment to it.bitmap },
-                    metrics = state.right?.metrics,
-                    valueFor = { segment, metrics -> rightValue(segment as RightSegment, metrics as RightMetrics?) }
-                )
-            }
-        }
+//        item {
+//            PageCard(title = stringResource(R.string.page_right_details)) {
+//                TilesPage(
+//                    tiles = state.preview?.rightTiles?.map { it.segment to it.bitmap },
+//                    metrics = state.right?.metrics,
+//                    valueFor = { segment, metrics -> rightValue(segment as RightSegment, metrics as RightMetrics?) }
+//                )
+//            }
+//        }
         item { Spacer(modifier = Modifier.height(32.dp)) }
     }
 }

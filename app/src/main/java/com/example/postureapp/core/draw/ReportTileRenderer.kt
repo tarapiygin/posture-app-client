@@ -108,28 +108,28 @@ object ReportTileRenderer {
         bitmap.asAndroidBitmap()
     }
 
-    suspend fun renderRightTile(
-        segment: RightSegment,
-        imagePath: String,
-        metrics: RightMetrics,
-        landmarks: LandmarkSet? = null,
-        size: Int = DEFAULT_SIZE
-    ): Bitmap? = withContext(Dispatchers.Default) {
-        val source = BitmapFactory.decodeFile(imagePath) ?: return@withContext null
-        val bitmap = ImageBitmap(size, size)
-        val canvas = androidx.compose.ui.graphics.Canvas(bitmap)
-        val drawScope = CanvasDrawScope()
-        drawScope.draw(
-            density = androidx.compose.ui.unit.Density(1f),
-            layoutDirection = LayoutDirection.Ltr,
-            canvas = canvas,
-            size = androidx.compose.ui.geometry.Size(size.toFloat(), size.toFloat())
-        ) {
-            drawRightTileContent(source.asImageBitmap(), metrics, landmarks, segment, size.toFloat(), size.toFloat())
-        }
-        source.recycle()
-        bitmap.asAndroidBitmap()
-    }
+//    suspend fun renderRightTile(
+//        segment: RightSegment,
+//        imagePath: String,
+//        metrics: RightMetrics,
+//        landmarks: LandmarkSet? = null,
+//        size: Int = DEFAULT_SIZE
+//    ): Bitmap? = withContext(Dispatchers.Default) {
+//        val source = BitmapFactory.decodeFile(imagePath) ?: return@withContext null
+//        val bitmap = ImageBitmap(size, size)
+//        val canvas = androidx.compose.ui.graphics.Canvas(bitmap)
+//        val drawScope = CanvasDrawScope()
+//        drawScope.draw(
+//            density = androidx.compose.ui.unit.Density(1f),
+//            layoutDirection = LayoutDirection.Ltr,
+//            canvas = canvas,
+//            size = androidx.compose.ui.geometry.Size(size.toFloat(), size.toFloat())
+//        ) {
+//            drawRightTileContent(source.asImageBitmap(), metrics, landmarks, segment, size.toFloat(), size.toFloat())
+//        }
+//        source.recycle()
+//        bitmap.asAndroidBitmap()
+//    }
 
     private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFrontImageWithOverlays(
         source: ImageBitmap,
@@ -384,64 +384,64 @@ object ReportTileRenderer {
     }
 
 
-    private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRightTileContent(
-        source: ImageBitmap,
-        metrics: RightMetrics,
-        landmarks: LandmarkSet?,
-        segment: RightSegment,
-        canvasWidth: Float,
-        canvasHeight: Float
-    ) {
-        val refWidth = landmarks?.imageWidth?.toFloat() ?: source.width.toFloat()
-        val refHeight = landmarks?.imageHeight?.toFloat() ?: source.height.toFloat()
-        val drawnWidth = canvasHeight * (refWidth / refHeight)
-        val leftOffset = (canvasWidth - drawnWidth) / 2f
-        val scaleX = drawnWidth / refWidth
-        val scaleY = canvasHeight / refHeight
-        drawImage(
-            image = source,
-            dstSize = androidx.compose.ui.unit.IntSize(drawnWidth.toInt(), canvasHeight.toInt()),
-            dstOffset = androidx.compose.ui.unit.IntOffset(leftOffset.toInt(), 0)
-        )
-
-        val toCanvas: (Offset) -> Offset = { offset ->
-            Offset(leftOffset + offset.x * scaleX, offset.y * scaleY)
-        }
-
-        val body = computeBodyDeviationGeometry(
-            base = toCanvas(metrics.greenBase),
-            jugular = toCanvas(metrics.earPx)
-        )
-
-        when (segment) {
-            RightSegment.CVA -> {
-                val ear = toCanvas(metrics.earPx)
-                val c7 = toCanvas(metrics.c7Px)
-                drawLevelGuideLine(y = ear.y)
-                drawRedAngleLabel(y = ear.y, angleDeg = metrics.cvaDeg, geometry = body)
-                drawBodyAxisLine(body.base.x)
-                drawBodyDeviationLine(body)
-                drawBodyAngleText(body.base, metrics.bodyAngleDeg)
-                drawRedAngleLabel(y = c7.y, angleDeg = metrics.bodyAngleDeg, geometry = body)
-                drawBlueTag(
-                    text = "CVA: ${formatDeg(metrics.cvaDeg)}",
-                    x = 12.dp.toPx(),
-                    y = ear.y
-                )
-            }
-            RightSegment.KNEE, RightSegment.HIP, RightSegment.SHOULDER, RightSegment.EAR -> {
-                val target = metrics.segments.firstOrNull { it.name.equals(segment.name, true) } ?: return
-                val anchor = toCanvas(target.anchorPx)
-                drawBodyAxisLine(body.base.x)
-                drawBodyDeviationLine(body)
-                drawRedAngleLabel(y = anchor.y, angleDeg = target.angleDeg, geometry = body)
-            }
-        }
-
-        // Markers after lines for better visibility - only show relevant landmarks for this segment
-        val relevantPoints = segmentToPoints(segment)
-        drawLandmarks(landmarks, toCanvas, filterPoints = relevantPoints)
-    }
+//    private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRightTileContent(
+//        source: ImageBitmap,
+//        metrics: RightMetrics,
+//        landmarks: LandmarkSet?,
+//        segment: RightSegment,
+//        canvasWidth: Float,
+//        canvasHeight: Float
+//    ) {
+//        val refWidth = landmarks?.imageWidth?.toFloat() ?: source.width.toFloat()
+//        val refHeight = landmarks?.imageHeight?.toFloat() ?: source.height.toFloat()
+//        val drawnWidth = canvasHeight * (refWidth / refHeight)
+//        val leftOffset = (canvasWidth - drawnWidth) / 2f
+//        val scaleX = drawnWidth / refWidth
+//        val scaleY = canvasHeight / refHeight
+//        drawImage(
+//            image = source,
+//            dstSize = androidx.compose.ui.unit.IntSize(drawnWidth.toInt(), canvasHeight.toInt()),
+//            dstOffset = androidx.compose.ui.unit.IntOffset(leftOffset.toInt(), 0)
+//        )
+//
+//        val toCanvas: (Offset) -> Offset = { offset ->
+//            Offset(leftOffset + offset.x * scaleX, offset.y * scaleY)
+//        }
+//
+//        val body = computeBodyDeviationGeometry(
+//            base = toCanvas(metrics.greenBase),
+//            jugular = toCanvas(metrics.earPx)
+//        )
+//
+//        when (segment) {
+//            RightSegment.CVA -> {
+//                val ear = toCanvas(metrics.earPx)
+//                val c7 = toCanvas(metrics.c7Px)
+//                drawLevelGuideLine(y = ear.y)
+//                drawRedAngleLabel(y = ear.y, angleDeg = metrics.cvaDeg, geometry = body)
+//                drawBodyAxisLine(body.base.x)
+//                drawBodyDeviationLine(body)
+//                drawBodyAngleText(body.base, metrics.bodyAngleDeg)
+//                drawRedAngleLabel(y = c7.y, angleDeg = metrics.bodyAngleDeg, geometry = body)
+//                drawBlueTag(
+//                    text = "CVA: ${formatDeg(metrics.cvaDeg)}",
+//                    x = 12.dp.toPx(),
+//                    y = ear.y
+//                )
+//            }
+//            RightSegment.KNEE, RightSegment.HIP, RightSegment.SHOULDER, RightSegment.EAR -> {
+//                val target = metrics.segments.firstOrNull { it.name.equals(segment.name, true) } ?: return
+//                val anchor = toCanvas(target.anchorPx)
+//                drawBodyAxisLine(body.base.x)
+//                drawBodyDeviationLine(body)
+//                drawRedAngleLabel(y = anchor.y, angleDeg = target.angleDeg, geometry = body)
+//            }
+//        }
+//
+//        // Markers after lines for better visibility - only show relevant landmarks for this segment
+//        val relevantPoints = segmentToPoints(segment)
+//        drawLandmarks(landmarks, toCanvas, filterPoints = relevantPoints)
+//    }
 
     private fun FrontMetrics.findLevel(level: FrontLevel): LevelAngle? = when (level) {
         FrontLevel.EARS -> levelAngles.firstOrNull { it.name.equals("Ears", true) }

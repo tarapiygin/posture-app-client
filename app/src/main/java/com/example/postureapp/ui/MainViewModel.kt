@@ -2,9 +2,12 @@ package com.example.postureapp.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.postureapp.BuildConfig
 import com.example.postureapp.data.auth.AuthRepository
 import com.example.postureapp.data.system.HealthRepository
 import com.example.postureapp.domain.auth.AuthUseCases
+import com.example.postureapp.domain.auth.model.AuthTokens
+import com.example.postureapp.domain.auth.model.User
 import com.example.postureapp.ui.navigation.AppDestination
 import com.example.postureapp.ui.navigation.MainGraphRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,12 +31,20 @@ class MainViewModel @Inject constructor(
     val authState = authRepository.authState
     val currentUser = authRepository.currentUser
 
+    private val shouldBypassAuth: Boolean = BuildConfig.BYPASS_AUTH
+
     init {
         viewModelScope.launch { resolveStartDestination() }
         viewModelScope.launch { checkBackendHealth() }
     }
 
     private suspend fun resolveStartDestination() {
+        if (shouldBypassAuth) {
+            enableDevAuthBypass()
+            _uiState.update { it.copy(startDestination = MainGraphRoute) }
+            return
+        }
+
         val hasSession = authRepository.hasStoredSession()
         val destination = if (hasSession) {
             val meResult = authUseCases.loadMe()
@@ -65,6 +76,20 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             authUseCases.logout()
         }
+    }
+
+    private suspend fun enableDevAuthBypass() {
+        val debugUser = User(
+            id = "debug-user",
+            email = "debug@posture.app",
+            isActive = true,
+            isSuperuser = false
+        )
+        val debugTokens = AuthTokens(
+            access = "debug-access-token",
+            refresh = "debug-refresh-token"
+        )
+        authRepository.enableDebugSession(debugUser, debugTokens)
     }
 }
 

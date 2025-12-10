@@ -101,6 +101,12 @@ class AuthRepository @Inject constructor(
         _currentUser.value = null
     }
 
+    suspend fun enableDebugSession(user: User, tokens: AuthTokens) {
+        _currentUser.value = user
+        _authState.value = AuthState.Authenticated
+        persistTokens(tokens.access, tokens.refresh)
+    }
+
     suspend fun hasStoredSession(): Boolean = tokenStore.currentTokens() != null
 
     private suspend fun fetchProfileInternal(): User {

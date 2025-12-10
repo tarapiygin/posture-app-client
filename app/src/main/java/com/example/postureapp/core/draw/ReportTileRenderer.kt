@@ -244,17 +244,17 @@ object ReportTileRenderer {
         canvasWidth: Float,
         canvasHeight: Float
     ) {
-        // 1. Референсная система координат (как у метрик и landmarks)
+        // 1. Референсная система координат – та же, что у метрик и landmarks
         val refWidth = landmarks?.imageWidth?.toFloat() ?: source.width.toFloat()
         val refHeight = landmarks?.imageHeight?.toFloat() ?: source.height.toFloat()
 
-        // 2. Находим уровень (для BODY делаем особый случай)
+        // 2. Уровень из метрик (для BODY пусть будет null – обработаем отдельно)
         val targetLevel: LevelAngle? = when (level) {
             FrontLevel.BODY -> null
             else -> metrics.findLevel(level)
         }
 
-        // Если это не BODY и уровень не нашёлся — просто нарисуем картинку, чтобы не было пустого тайла
+        // Если это не BODY и уровень не найден – нарисуем просто картинку, без разметки
         if (level != FrontLevel.BODY && targetLevel == null) {
             drawImage(
                 image = source,
@@ -263,13 +263,13 @@ object ReportTileRenderer {
             return
         }
 
-        // 3. Центр и базовая ширина окна кропа в координатах ref
+        // 3. Центр и размер окна кропа в ref-координатах
         val (centerXRef, centerYRef, baseWidthRef) = if (level == FrontLevel.BODY) {
-            // Для BODY центрируемся по всему телу (грубая, но безопасная эвристика)
+            // Для BODY: центр по всему изображению, база – вся ширина
             Triple(
                 refWidth / 2f,
                 refHeight / 2f,
-                refWidth // берем всю ширину как "базу"
+                refWidth
             )
         } else {
             val t = targetLevel!!
@@ -279,11 +279,9 @@ object ReportTileRenderer {
             Triple(cx, cy, bw)
         }
 
-        // 4. Размер окна кропа в координатах ref
         val boxSizeRef = (baseWidthRef * 3f).coerceAtLeast(80f)
         val halfRef = boxSizeRef / 2f
 
-        // Ограничиваем окно границами исходного ref-изображения
         val maxLeftRef = (refWidth - boxSizeRef).coerceAtLeast(0f)
         val maxTopRef = (refHeight - boxSizeRef).coerceAtLeast(0f)
 
@@ -293,18 +291,17 @@ object ReportTileRenderer {
         val cropWidthRef = boxSizeRef.coerceAtMost(refWidth - cropLeftRef)
         val cropHeightRef = boxSizeRef.coerceAtMost(refHeight - cropTopRef)
 
-        // 5. Переводим кроп ref -> координаты битмапа source
+        // 4. Перевод ref-кропа в координаты битмапа source
         val sx = source.width.toFloat() / refWidth
         val sy = source.height.toFloat() / refHeight
 
-        val srcLeft = (cropLeftRef * sx)
-        val srcTop = (cropTopRef * sy)
+        val srcLeft = cropLeftRef * sx
+        val srcTop = cropTopRef * sy
         val srcWidth = (cropWidthRef * sx).coerceAtMost(source.width - srcLeft).toInt()
         val srcHeight = (cropHeightRef * sy).coerceAtMost(source.height - srcTop).toInt()
-
         val srcSize = androidx.compose.ui.unit.IntSize(srcWidth, srcHeight)
 
-        // 6. Рисуем вырезанный фрагмент на весь тайл
+        // 5. Рисуем вырезанный фрагмент на весь тайл
         drawImage(
             image = source,
             srcOffset = androidx.compose.ui.unit.IntOffset(srcLeft.toInt(), srcTop.toInt()),
@@ -312,9 +309,8 @@ object ReportTileRenderer {
             dstSize = androidx.compose.ui.unit.IntSize(canvasWidth.toInt(), canvasHeight.toInt())
         )
 
-        // 7. Проекция ref-координат (метрики, landmarks) в координаты тайла
+        // 6. Проекция ref-координат (метрики и landmarks) в координаты тайла
         val toCanvas: (Offset) -> Offset = { ref ->
-            // ref.x / ref.y – в системе ref (0..refWidth / 0..refHeight)
             val relX = (ref.x - cropLeftRef) / cropWidthRef
             val relY = (ref.y - cropTopRef) / cropHeightRef
             Offset(
@@ -323,19 +319,19 @@ object ReportTileRenderer {
             )
         }
 
-        // 8. Рисуем линии/углы
+        // 7. BODY-тайл: допускаем красную геометрию корпуса (общий угол), это не «квадраты с углами для сегментов»
         if (level == FrontLevel.BODY) {
-            // BODY: ось тела, линия отклонения, подпись угла
             val bodyGeom = computeBodyDeviationGeometry(
                 base = toCanvas(metrics.bodyBase),
                 jugular = toCanvas(metrics.jnPx)
             )
 
+            // Вертикальная ось + линия отклонения + подпись угла тела – при желании можно тоже убрать
             drawBodyAxisLine(bodyGeom.base.x)
             drawBodyDeviationLine(bodyGeom)
             drawBodyAngleText(bodyGeom.base, metrics.bodyAngleDeg)
 
-            // Лэндмарки по всему кропу (или можно фильтровать, если нужно)
+            // Лэндмарки в пределах кропа
             drawLandmarks(
                 landmarks = landmarks,
                 toCanvas = toCanvas,
@@ -350,7 +346,9 @@ object ReportTileRenderer {
             return
         }
 
-        // Остальные уровни (уши, плечи, ASIS, колени, стопы)
+        // 8. Остальные уровни (уши, плечи, ASIS, колени, стопы):
+        // только жёлтая линия уровня + горизонталь + точки; БЕЗ красных углов и квадратов
+
         val t = targetLevel!!
         val leftRef = t.left
         val rightRef = t.right
@@ -359,24 +357,18 @@ object ReportTileRenderer {
         val right = toCanvas(rightRef)
         val segmentY = (left.y + right.y) / 2f
 
+        // горизонтальная направляющая
         drawLevelGuideLine(y = segmentY)
-        drawLevelSegment(start = left, end = right, color = Yellow, strokeWidth = 3.dp)
-
-        // Геометрия отклонения тела в той же системе ref -> tile
-        val bodyGeom = computeBodyDeviationGeometry(
-            base = toCanvas(metrics.bodyBase),
-            jugular = toCanvas(metrics.jnPx)
+        // жёлтый сегмент
+        drawLevelSegment(
+            start = left,
+            end = right,
+            color = Yellow,
+            strokeWidth = 3.dp
         )
 
-        t.bodyDeviationDeg?.let { dev ->
-            drawRedAngleLabel(
-                y = segmentY,
-                angleDeg = dev,
-                geometry = bodyGeom
-            )
-        }
-
-        // Рисуем только релевантные для этого уровня точки
+        // Никаких drawRedAngleLabel / drawBlueTag для кроп-тайлов!
+        // Просто рисуем маркеры соответствующих точек
         val relevantPoints = levelToPoints(level)
         drawLandmarks(
             landmarks = landmarks,

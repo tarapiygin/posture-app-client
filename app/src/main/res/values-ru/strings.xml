@@ -96,4 +96,23 @@
     <string name="chooser_title">Выберите источник</string>
     <string name="chooser_camera">Камера</string>
     <string name="chooser_gallery">Галерея</string>
+    <string name="results_title">Быстрый анализ</string>
+    <string name="share_report">Поделиться отчётом</string>
+    <string name="save_report">Сохранить</string>
+    <string name="not_provided">Не указано</string>
+    <string name="not_available_dash">—</string>
+    <string name="page_front_overview">Фронт: обзор</string>
+    <string name="page_front_details">Фронт: детали</string>
+    <string name="page_right_overview">Правая сторона: обзор</string>
+    <string name="page_right_details">Правая сторона: детали</string>
+    <string name="metric_body_dev">Отклонение корпуса</string>
+    <string name="metric_knee_dev">Отклонение колена</string>
+    <string name="metric_hip_dev">Отклонение таза</string>
+    <string name="metric_shoulder_dev">Отклонение плеча</string>
+    <string name="metric_ear_dev">Отклонение уха</string>
+    <string name="share_success">PDF создан</string>
+    <string name="error_generic">Что-то пошло не так</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_open">Открыть</string>
+    <string name="report_viewer_title">Отчёт</string>
 </resources>

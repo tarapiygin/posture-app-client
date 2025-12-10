@@ -150,4 +150,23 @@
     <string name="chooser_title">Choose a source</string>
     <string name="chooser_camera">Camera</string>
     <string name="chooser_gallery">Gallery</string>
+    <string name="results_title">Быстрый анализ</string>
+    <string name="share_report">Share report</string>
+    <string name="save_report">Save report</string>
+    <string name="not_provided">Not provided</string>
+    <string name="not_available_dash">—</string>
+    <string name="page_front_overview">Front overview</string>
+    <string name="page_front_details">Front details</string>
+    <string name="page_right_overview">Right overview</string>
+    <string name="page_right_details">Right details</string>
+    <string name="metric_body_dev">Body deviation</string>
+    <string name="metric_knee_dev">Knee deviation</string>
+    <string name="metric_hip_dev">Hip deviation</string>
+    <string name="metric_shoulder_dev">Shoulder deviation</string>
+    <string name="metric_ear_dev">Ear deviation</string>
+    <string name="share_success">PDF created</string>
+    <string name="error_generic">Something went wrong</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_open">Open</string>
+    <string name="report_viewer_title">Report</string>
 </resources>

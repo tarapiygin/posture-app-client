@@ -89,6 +89,9 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.datastore.core)
     implementation(libs.security.crypto)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    kapt(libs.androidx.room.compiler)
 
     implementation(libs.accompanist.systemuicontroller)
     implementation(libs.javax.inject)

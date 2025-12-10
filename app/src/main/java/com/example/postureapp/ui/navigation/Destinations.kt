@@ -186,6 +186,18 @@ sealed class Destinations(
             }
         }
     }
+
+    data class ReportViewer(private val reportId: String) : Destinations(
+        route = "report_viewer?id=$reportId",
+        titleRes = R.string.report_viewer_title,
+        labelRes = R.string.report_viewer_title,
+        icon = Icons.Rounded.Description
+    ) {
+        companion object {
+            const val routePattern = "report_viewer?id={id}"
+            fun create(id: String): ReportViewer = ReportViewer(id)
+        }
+    }
 }
 
 val BottomDestinations = listOf(

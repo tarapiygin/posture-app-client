@@ -82,6 +82,12 @@ class ReportCoordinator @Inject constructor(
 
     fun currentSideState(side: Side): SideState = _sessionFlow.value.currentSide(side)
 
+    fun reset(): String {
+        val fresh = newSession()
+        _sessionFlow.value = fresh
+        return fresh.id
+    }
+
     private fun ReportSession.updateSide(
         side: Side,
         block: SideState.() -> SideState

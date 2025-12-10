@@ -34,6 +34,7 @@ import com.example.postureapp.ui.main.MainScaffold
 import com.example.postureapp.ui.processing.ProcessingScreen
 import com.example.postureapp.ui.report.ReportHubScreen
 import com.example.postureapp.ui.reports.ReportsScreen
+import com.example.postureapp.ui.reports.ReportViewerScreen
 import com.example.postureapp.ui.settings.AccountSettingsScreen
 
 @Composable
@@ -164,6 +165,9 @@ fun AppNavHost(
                     navController = navController
                 ) { padding ->
                     ReportsScreen(
+                        onOpenReport = { id ->
+                            navController.navigate(Destinations.ReportViewer.create(id).route)
+                        },
                         modifier = Modifier.padding(padding)
                     )
                 }
@@ -238,6 +242,15 @@ fun AppNavHost(
                     navController.navigate(
                         Destinations.EditLandmarks.create(resultId, imagePath, side).route
                     )
+                },
+                onNavigateToReports = {
+                    navController.navigate(Destinations.Reports.route) {
+                        popUpTo(MainGraphRoute) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 },
                 modifier = Modifier
             )
@@ -430,6 +443,22 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() }
             )
         }
+
+        composable(
+            route = Destinations.ReportViewer.routePattern,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.StringType
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id").orEmpty()
+            ReportViewerScreen(
+                reportId = id,
+                onBack = { navController.popBackStack() },
+                onDeleted = { navController.popBackStack() }
+            )
+        }
     }
 }
-

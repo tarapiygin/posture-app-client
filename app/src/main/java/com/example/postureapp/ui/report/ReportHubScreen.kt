@@ -60,8 +60,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.postureapp.R
 import com.example.postureapp.core.navigation.encodePath
 import com.example.postureapp.core.report.Side
-import com.example.postureapp.domain.metrics.ComputeFrontMetricsUseCase
-import com.example.postureapp.domain.metrics.FrontMetrics
 import com.example.postureapp.ui.indicators.front.FrontIndicatorsPanel
 import com.example.postureapp.ui.indicators.right.RightIndicatorsPanel
 import java.io.File
@@ -78,6 +76,7 @@ fun ReportHubScreen(
     onOpenCrop: (Side, String, Int) -> Unit,
     onOpenProcessing: (Side, String, String) -> Unit,
     onOpenEdit: (Side, String, String) -> Unit,
+    onNavigateToReports: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ReportHubViewModel = hiltViewModel()
 ) {
@@ -85,7 +84,6 @@ fun ReportHubScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val computeMetrics = remember { ComputeFrontMetricsUseCase() }
 
     var pendingGallerySide by remember { mutableStateOf<Side?>(null) }
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -145,8 +143,6 @@ fun ReportHubScreen(
         ReportTab.RESULTS -> if (activeSide == Side.RIGHT) uiState.right else uiState.front
     }
 
-    val metrics = currentSideState.finalLandmarks?.let(computeMetrics::invoke)
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -197,7 +193,7 @@ fun ReportHubScreen(
                 )
 
                 ReportTab.RESULTS -> ResultsContent(
-                    metrics = metrics,
+                    onNavigateToReports = onNavigateToReports,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -466,67 +462,13 @@ private fun TabButton(
 
 @Composable
 private fun ResultsContent(
-    metrics: FrontMetrics?,
+    onNavigateToReports: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    com.example.postureapp.ui.results.ResultsTabScreen(
+        onNavigateToReports = onNavigateToReports,
         modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.tab_results),
-            style = MaterialTheme.typography.titleLarge
-        )
-        if (metrics == null) {
-            Text(
-                text = stringResource(R.string.edit_landmarks_error_missing),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            return@Column
-        }
-
-        ResultCard(
-            title = stringResource(R.string.lbl_body_angle),
-            value = metrics.bodyAngleDeg
-        )
-        metrics.levelAngles.forEach { level ->
-            ResultCard(
-                title = level.name,
-                value = level.deviationDeg
-            )
-        }
-    }
-}
-
-@Composable
-private fun ResultCard(
-    title: String,
-    value: Float,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = 4.dp,
-        shadowElevation = 4.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "${value.toInt()}\u00B0",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-            )
-        }
-    }
+    )
 }
 
 @Composable

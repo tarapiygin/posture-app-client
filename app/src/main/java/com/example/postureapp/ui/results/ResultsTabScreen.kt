@@ -74,20 +74,20 @@ fun ResultsTabScreen(
                 horizontalAlignment = Alignment.End,
                 modifier = Modifier.padding(bottom = 8.dp, end = 8.dp)
             ) {
+                val shareEnabled = state.canShare && !state.sharing
                 FloatingActionButton(
-                    onClick = viewModel::onShare,
+                    onClick = { if (shareEnabled) viewModel.onShare() },
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    enabled = state.canShare && !state.sharing
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
                     Icon(imageVector = Icons.Rounded.Send, contentDescription = stringResource(R.string.share_report))
                 }
                 if (state.canSave) {
+                    val saveEnabled = !state.saving
                     FloatingActionButton(
-                        onClick = viewModel::onSave,
+                        onClick = { if (saveEnabled) viewModel.onSave() },
                         containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary,
-                        enabled = !state.saving
+                        contentColor = MaterialTheme.colorScheme.onSecondary
                     ) {
                         Icon(imageVector = Icons.Rounded.FileDownload, contentDescription = stringResource(R.string.save_report))
                     }

@@ -20,7 +20,9 @@ coroutines = "1.8.1"
 serializationConverter = "1.0.0"
 hiltNavigationCompose = "1.2.0"
 appcompat = "1.6.1"
-room = "2.6.1"
+room = "2.7.0-alpha02"
+sqlite = "2.4.0-alpha02"
+roomCommonJvm = "2.8.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,6 +62,8 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-sqlite-ktx = { group = "androidx.sqlite", name = "sqlite-ktx", version.ref = "sqlite" }
+androidx-room-common-jvm = { group = "androidx.room", name = "room-common-jvm", version.ref = "roomCommonJvm" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

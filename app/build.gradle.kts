@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
 
     implementation(libs.hilt.android)
+    implementation(libs.androidx.room.common.jvm)
     kapt(libs.hilt.compiler)
 
     implementation(libs.retrofit)
@@ -92,6 +93,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
+    implementation(libs.androidx.sqlite.ktx)
 
     implementation(libs.accompanist.systemuicontroller)
     implementation(libs.javax.inject)

@@ -41,10 +41,12 @@ object ReportTileRenderer {
         val canvasWidth = width
         val canvasHeight = height
         val bitmap = ImageBitmap(canvasWidth, canvasHeight)
+        val canvas = androidx.compose.ui.graphics.Canvas(bitmap)
         val drawScope = CanvasDrawScope()
         drawScope.draw(
             density = androidx.compose.ui.unit.Density(1f),
             layoutDirection = LayoutDirection.Ltr,
+            canvas = canvas,
             size = androidx.compose.ui.geometry.Size(canvasWidth.toFloat(), canvasHeight.toFloat())
         ) {
             drawFrontImageWithOverlays(source.asImageBitmap(), metrics, canvasWidth.toFloat(), canvasHeight.toFloat())
@@ -61,10 +63,12 @@ object ReportTileRenderer {
     ): Bitmap? = withContext(Dispatchers.Default) {
         val source = BitmapFactory.decodeFile(imagePath) ?: return@withContext null
         val bitmap = ImageBitmap(width, height)
+        val canvas = androidx.compose.ui.graphics.Canvas(bitmap)
         val drawScope = CanvasDrawScope()
         drawScope.draw(
             density = androidx.compose.ui.unit.Density(1f),
             layoutDirection = LayoutDirection.Ltr,
+            canvas = canvas,
             size = androidx.compose.ui.geometry.Size(width.toFloat(), height.toFloat())
         ) {
             drawRightImageWithOverlays(source.asImageBitmap(), metrics, width.toFloat(), height.toFloat())
@@ -81,10 +85,12 @@ object ReportTileRenderer {
     ): Bitmap? = withContext(Dispatchers.Default) {
         val source = BitmapFactory.decodeFile(imagePath) ?: return@withContext null
         val bitmap = ImageBitmap(size, size)
+        val canvas = androidx.compose.ui.graphics.Canvas(bitmap)
         val drawScope = CanvasDrawScope()
         drawScope.draw(
             density = androidx.compose.ui.unit.Density(1f),
             layoutDirection = LayoutDirection.Ltr,
+            canvas = canvas,
             size = androidx.compose.ui.geometry.Size(size.toFloat(), size.toFloat())
         ) {
             drawFrontTileContent(source.asImageBitmap(), metrics, level, size.toFloat(), size.toFloat())
@@ -101,10 +107,12 @@ object ReportTileRenderer {
     ): Bitmap? = withContext(Dispatchers.Default) {
         val source = BitmapFactory.decodeFile(imagePath) ?: return@withContext null
         val bitmap = ImageBitmap(size, size)
+        val canvas = androidx.compose.ui.graphics.Canvas(bitmap)
         val drawScope = CanvasDrawScope()
         drawScope.draw(
             density = androidx.compose.ui.unit.Density(1f),
             layoutDirection = LayoutDirection.Ltr,
+            canvas = canvas,
             size = androidx.compose.ui.geometry.Size(size.toFloat(), size.toFloat())
         ) {
             drawRightTileContent(source.asImageBitmap(), metrics, segment, size.toFloat(), size.toFloat())

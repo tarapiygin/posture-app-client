@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.postureapp.R
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportViewerScreen(
     reportId: String,
@@ -63,6 +65,8 @@ fun ReportViewerScreen(
             }
         }
     }
+
+    val report = state.report
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -101,7 +105,7 @@ fun ReportViewerScreen(
                 androidx.compose.material3.CircularProgressIndicator()
             }
 
-            state.report == null -> Box(
+            report == null -> Box(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
@@ -117,7 +121,7 @@ fun ReportViewerScreen(
                 item {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                         Text(text = stringResource(R.string.report_viewer_title), style = MaterialTheme.typography.titleMedium)
-                        Text(text = state.report.pdfPath, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = report.pdfPath, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 items(state.pages) { page ->

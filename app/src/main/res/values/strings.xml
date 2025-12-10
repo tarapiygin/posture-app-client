@@ -51,6 +51,7 @@
     <string name="auth_prompt_have_account">Already have an account?</string>
     <string name="action_go_to_sign_up">Create one</string>
     <string name="action_go_to_sign_in">Sign in</string>
+
     <string name="analysis_pitch_label">Pitch</string>
     <string name="analysis_roll_label">Roll</string>
     <string name="analysis_hint_level">Aligned - hold steady</string>
@@ -61,18 +62,21 @@
     <string name="analysis_hint_lower">Raise the camera</string>
     <string name="analysis_torch_label">Torch</string>
     <string name="analysis_error_capture">Cannot capture photo. Try again.</string>
+
     <string name="processing_title">Processing</string>
-    <string name="processing_message">Изображение обрабатывается</string>
-    <string name="processing_path_debug">Путь: %1$s</string>
-    <string name="processing_error_no_pose">Не удалось найти позу на изображении. Попробуйте ещё раз или сделайте снимок заново.</string>
-    <string name="processing_error_missing_model">Не удалось загрузить модель поз. Добавьте файл pose_landmarker_full.task в папку assets/models.</string>
-    <string name="processing_error_generic">Не получилось обработать фото. Попробуйте снова.</string>
-    <string name="processing_error_missing_path">Путь к изображению не найден. Сделайте снимок заново.</string>
-    <string name="processing_retry">Повторить</string>
-    <string name="processing_retake">Сделать снимок заново</string>
-    <string name="processing_back_to_camera">Назад к камере</string>
+    <string name="processing_message">Image is being processed</string>
+    <string name="processing_path_debug">Path: %1$s</string>
+    <string name="processing_error_no_pose">Could not detect a pose in the image. Try again or retake the photo.</string>
+    <string name="processing_error_missing_model">Could not load the pose model. Add the file pose_landmarker_full.task to the assets/models folder.</string>
+    <string name="processing_error_generic">Failed to process the photo. Please try again.</string>
+    <string name="processing_error_missing_path">Image path not found. Please retake the photo.</string>
+    <string name="processing_retry">Retry</string>
+    <string name="processing_retake">Retake photo</string>
+    <string name="processing_back_to_camera">Back to camera</string>
+
     <string name="crop_title">Crop</string>
     <string name="crop_loading">Preparing photo…</string>
+
     <string name="edit_title">Edit landmarks</string>
     <string name="edit_landmarks_title">Edit landmarks</string>
     <string name="edit_landmarks_hint">Tap Continue to proceed to manual editing (next part).</string>
@@ -81,11 +85,13 @@
     <string name="edit_landmarks_back">Back</string>
     <string name="edit_landmarks_error_missing">The result could not be uploaded. Repeat the processing.</string>
     <string name="edit_landmarks_summary">%1$d landmarks • %2$dx%3$d px</string>
+
     <string name="hint_aligned">Tap a marker to select, then drag to align it with the anatomical landmark shown in the reference.</string>
     <string name="btn_undo">Undo</string>
     <string name="btn_reset">Reset</string>
     <string name="btn_pin">Finalize</string>
     <string name="action_help">Help</string>
+
     <string name="point_ankle_center_left">Ankle center (left)</string>
     <string name="point_ankle_center_right">Ankle center (right)</string>
     <string name="point_tibial_tuberosity_left">Tibial tuberosity (left)</string>
@@ -108,6 +114,7 @@
     <string name="point_left_ear">Left ear</string>
     <string name="point_right_ear">Right ear</string>
     <string name="point_right_c7">C7 (right)</string>
+
     <string name="help_left_ankle">Place the marker on the lateral malleolus at the outer ankle.</string>
     <string name="help_right_ankle">Place the marker on the lateral malleolus at the outer ankle.</string>
     <string name="help_left_knee">Align with the center of the patella on the left knee.</string>
@@ -122,13 +129,16 @@
     <string name="help_tibial_tuberosity_left">Reference point midway between left knee and ankle along the tibia.</string>
     <string name="help_tibial_tuberosity_right">Reference point midway between right knee and ankle along the tibia.</string>
     <string name="help_jugular_notch">Midpoint between shoulders, slightly below, at the jugular notch.</string>
+
     <string name="indicators_placeholder_message">Indicators screen will be implemented in Part 6.</string>
     <string name="indicators_continue">Continue</string>
     <string name="indicators_placeholder_title">Indicators</string>
     <string name="indicators_placeholder_id">Result: %1$s</string>
+
     <string name="quick_analysis">Quick analysis</string>
     <string name="front_view_title">Front view analysis</string>
     <string name="right_side_title">Right side analysis</string>
+
     <string name="lbl_ears">Ears</string>
     <string name="lbl_shoulders">Shoulders</string>
     <string name="lbl_asis">ASIS</string>
@@ -137,11 +147,13 @@
     <string name="lbl_body_angle">Body deviation</string>
     <string name="label_cva">CVA</string>
     <string name="angle_body_right">Body angle</string>
+
     <string name="tab_front">Front</string>
     <string name="tab_right_side">Right side</string>
     <string name="tab_results">Results</string>
     <string name="action_reset_report">Reset report</string>
     <string name="right_side_stub">Right side view coming soon (id: %1$s)</string>
+
     <!-- Report hub -->
     <string name="report_title">Quick Analysis</string>
     <string name="tab_right">Right side</string>
@@ -150,7 +162,8 @@
     <string name="chooser_title">Choose a source</string>
     <string name="chooser_camera">Camera</string>
     <string name="chooser_gallery">Gallery</string>
-    <string name="results_title">Быстрый анализ</string>
+    <string name="results_title">Quick analysis</string>
+    <string name="pdf_report_header">POSTURE REPORT — Quick Analysis</string>
     <string name="share_report">Share report</string>
     <string name="save_report">Save report</string>
     <string name="not_provided">Not provided</string>
@@ -169,4 +182,18 @@
     <string name="action_delete">Delete</string>
     <string name="action_open">Open</string>
     <string name="report_viewer_title">Report</string>
+        <string name="metric_head_tilt">Head tilt</string>
+    <string name="metric_shoulder_level">Shoulder level</string>
+    <string name="metric_asis_level">ASIS level</string>
+    <string name="metric_knee_level">Knee level</string>
+    <string name="metric_feet_level">Feet level</string>
+    <!-- Table headers -->
+    <string name="table_header_segment">SEGMENT</string>
+    <string name="table_header_frontal_tilt">FRONTAL TILT</string>
+    <string name="table_header_lateral_shift">LATERAL SHIFT</string>
+    <!-- Terms text -->
+    <string name="terms_title">TERMS:</string>
+    <string name="terms_frontal_tilt">Frontal tilt — yellow lines show asymmetry of height between left and right sides of the segment.</string>
+    <string name="terms_lateral_shift">Lateral shift — angle of each segment relative to the base reference line (red line).</string>
+    <string name="terms_body_deviation">Body deviation — trunk tilt relative to vertical in front view (corpus leaning left/right with fixed feet and pelvis).</string>
 </resources>

@@ -20,8 +20,8 @@ coroutines = "1.8.1"
 serializationConverter = "1.0.0"
 hiltNavigationCompose = "1.2.0"
 appcompat = "1.6.1"
-room = "2.7.0-alpha02"
-sqlite = "2.4.0-alpha02"
+room = "2.8.4"
+sqlite = "2.6.2"
 roomCommonJvm = "2.8.4"
 
 [libraries]

@@ -126,21 +126,20 @@ class ResultsTabViewModel @Inject constructor(
     ): ReportPreview? = withContext(Dispatchers.Default) {
         if (front == null && right == null) return@withContext null
         val frontPanel = front?.let {
-            ReportTileRenderer.renderFrontPanel(it.imagePath, it.metrics, width = 480, height = 640)
+            ReportTileRenderer.renderFrontPanel(it.imagePath, it.metrics, landmarks = it.landmarks, width = 480, height = 640)
         }
         val rightPanel = right?.let {
-            ReportTileRenderer.renderRightPanel(it.imagePath, it.metrics, width = 480, height = 640)
+            ReportTileRenderer.renderRightPanel(it.imagePath, it.metrics, landmarks = it.landmarks, width = 480, height = 640)
         }
         val frontTiles = front?.let { data ->
             listOf(
-                FrontLevel.BODY,
                 FrontLevel.EARS,
                 FrontLevel.SHOULDERS,
                 FrontLevel.ASIS,
                 FrontLevel.KNEES,
                 FrontLevel.FEET
             ).mapNotNull { level ->
-                ReportTileRenderer.renderFrontTile(level, data.imagePath, data.metrics, size = 360)?.let { bmp ->
+                ReportTileRenderer.renderFrontTile(level, data.imagePath, data.metrics, landmarks = data.landmarks, size = 360)?.let { bmp ->
                     FrontTilePreview(level, bmp)
                 }
             }
@@ -153,7 +152,7 @@ class ResultsTabViewModel @Inject constructor(
                 RightSegment.SHOULDER,
                 RightSegment.EAR
             ).mapNotNull { segment ->
-                ReportTileRenderer.renderRightTile(segment, data.imagePath, data.metrics, size = 360)?.let { bmp ->
+                ReportTileRenderer.renderRightTile(segment, data.imagePath, data.metrics, landmarks = data.landmarks, size = 360)?.let { bmp ->
                     RightTilePreview(segment, bmp)
                 }
             }
@@ -219,9 +218,9 @@ class ResultsTabViewModel @Inject constructor(
 
     private suspend fun generateThumbnail(data: ReportRenderData): File? = withContext(Dispatchers.IO) {
         val bitmap: Bitmap = data.front?.let {
-            ReportTileRenderer.renderFrontPanel(it.imagePath, it.metrics, width = 360, height = 480)
+            ReportTileRenderer.renderFrontPanel(it.imagePath, it.metrics, landmarks = it.landmarks, width = 360, height = 480)
         } ?: data.right?.let {
-            ReportTileRenderer.renderRightPanel(it.imagePath, it.metrics, width = 360, height = 480)
+            ReportTileRenderer.renderRightPanel(it.imagePath, it.metrics, landmarks = it.landmarks, width = 360, height = 480)
         } ?: return@withContext null
 
         val thumbsDir = File(context.filesDir, "reports/thumbs").apply { mkdirs() }

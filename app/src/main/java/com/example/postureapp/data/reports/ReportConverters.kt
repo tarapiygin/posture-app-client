@@ -1,7 +1,6 @@
 package com.example.postureapp.data.reports
 
 import androidx.compose.ui.geometry.Offset
-import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
 import com.example.postureapp.domain.landmarks.AnatomicalPoint
 import com.example.postureapp.domain.landmarks.Landmark
@@ -10,14 +9,12 @@ import com.example.postureapp.domain.metrics.FrontMetrics
 import com.example.postureapp.domain.metrics.LevelAngle
 import com.example.postureapp.domain.metrics.right.RightMetrics
 import com.example.postureapp.domain.metrics.right.SegmentAngle
-import javax.inject.Inject
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-@ProvidedTypeConverter
-class ReportConverters @Inject constructor(
-    private val json: Json
+class ReportConverters(
+    private val json: Json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 ) {
 
     @TypeConverter

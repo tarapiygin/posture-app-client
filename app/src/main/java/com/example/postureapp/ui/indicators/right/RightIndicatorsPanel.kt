@@ -75,6 +75,7 @@ fun RightIndicatorsPanel(
             else -> RightIndicatorsContent(
                 bitmap = bitmap,
                 metrics = metrics,
+                landmarks = landmarksFinal,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -103,6 +104,7 @@ fun RightIndicatorsPanel(
 private fun RightIndicatorsContent(
     bitmap: Bitmap,
     metrics: RightMetrics,
+    landmarks: LandmarkSet? = null,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -117,11 +119,13 @@ private fun RightIndicatorsContent(
             val canvasHeightPx = constraints.maxHeight.toFloat()
             val canvasWidthDp = with(density) { canvasWidthPx.toDp() }
             val canvasHeightDp = with(density) { canvasHeightPx.toDp() }
+            val refWidth = landmarks?.imageWidth?.takeIf { it > 0 }?.toFloat() ?: bitmap.width.toFloat()
+            val refHeight = landmarks?.imageHeight?.takeIf { it > 0 }?.toFloat() ?: bitmap.height.toFloat()
 
-            val drawnWidth = canvasHeightPx * (bitmap.width.toFloat() / bitmap.height.toFloat())
+            val drawnWidth = canvasHeightPx * (refWidth / refHeight)
             val leftOffset = (canvasWidthPx - drawnWidth) / 2f
-            val scaleX = drawnWidth / bitmap.width.toFloat()
-            val scaleY = canvasHeightPx / bitmap.height.toFloat()
+            val scaleX = drawnWidth / refWidth
+            val scaleY = canvasHeightPx / refHeight
 
             fun toCanvas(offset: Offset): Offset =
                 Offset(leftOffset + offset.x * scaleX, offset.y * scaleY)

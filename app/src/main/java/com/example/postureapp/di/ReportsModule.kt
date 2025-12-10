@@ -24,13 +24,11 @@ object ReportsModule {
         @ApplicationContext context: Context,
         json: Json
     ): ReportsDatabase {
-        val converters = ReportConverters(json)
         return Room.databaseBuilder(
             context,
             ReportsDatabase::class.java,
             "reports.db"
         )
-            .addTypeConverter(converters)
             .fallbackToDestructiveMigration()
             .build()
     }

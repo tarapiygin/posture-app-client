@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -251,9 +252,9 @@ private fun TilesPage(
                 row.forEach { (key, bitmap) ->
                     val img = remember(bitmap) { bitmap.asImageBitmap() }
                     val value = valueFor(key, metrics)
+                    val valueText = value?.let { String.format("%.1f°", it) } ?: stringResource(R.string.not_provided)
                     TileCard(
-                        title = tileLabel(key),
-                        value = value,
+                        titleWithValue = "${tileLabel(key)}: $valueText",
                         bitmap = img,
                         modifier = Modifier.weight(1f)
                     )
@@ -266,11 +267,11 @@ private fun TilesPage(
 
 @Composable
 private fun TileCard(
-    title: String,
-    value: Float?,
+    titleWithValue: String,
     bitmap: androidx.compose.ui.graphics.ImageBitmap,
     modifier: Modifier = Modifier
 ) {
+    val aspectRatio = if (bitmap.height != 0) bitmap.width.toFloat() / bitmap.height.toFloat() else 1f
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = modifier,
@@ -286,11 +287,10 @@ private fun TileCard(
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
+                    .aspectRatio(aspectRatio)
             )
-            Text(text = title, style = MaterialTheme.typography.bodyMedium)
             Text(
-                text = value?.let { String.format("%.1f°", it) } ?: stringResource(R.string.not_provided),
+                text = titleWithValue,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -338,21 +338,22 @@ private fun MetricRow(label: String, value: Float?) {
     }
 }
 
+@Composable
 private fun tileLabel(key: Any): String = when (key) {
     is FrontLevel -> when (key) {
-        FrontLevel.BODY -> "Body deviation"
-        FrontLevel.EARS -> "Head tilt"
-        FrontLevel.SHOULDERS -> "Shoulder level"
-        FrontLevel.ASIS -> "ASIS level"
-        FrontLevel.KNEES -> "Knee level"
-        FrontLevel.FEET -> "Feet level"
+        FrontLevel.BODY -> stringResource(R.string.metric_body_dev)
+        FrontLevel.EARS -> stringResource(R.string.metric_head_tilt)
+        FrontLevel.SHOULDERS -> stringResource(R.string.metric_shoulder_level)
+        FrontLevel.ASIS -> stringResource(R.string.metric_asis_level)
+        FrontLevel.KNEES -> stringResource(R.string.metric_knee_level)
+        FrontLevel.FEET -> stringResource(R.string.metric_feet_level)
     }
     is RightSegment -> when (key) {
-        RightSegment.CVA -> "CVA"
-        RightSegment.KNEE -> "Knee"
-        RightSegment.HIP -> "Hip"
-        RightSegment.SHOULDER -> "Shoulder"
-        RightSegment.EAR -> "Ear"
+        RightSegment.CVA -> stringResource(R.string.label_cva)
+        RightSegment.KNEE -> stringResource(R.string.metric_knee_dev)
+        RightSegment.HIP -> stringResource(R.string.metric_hip_dev)
+        RightSegment.SHOULDER -> stringResource(R.string.metric_shoulder_dev)
+        RightSegment.EAR -> stringResource(R.string.metric_ear_dev)
     }
     else -> ""
 }

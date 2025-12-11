@@ -15,7 +15,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.postureapp.core.navigation.encodePath
 import com.example.postureapp.core.report.Side
 import com.example.postureapp.data.auth.AuthState
 import com.example.postureapp.ui.MainViewModel
@@ -27,9 +26,8 @@ import com.example.postureapp.ui.edit.EditLandmarksScreen
 import com.example.postureapp.ui.feedback.FeedbackScreen
 import com.example.postureapp.ui.home.HomeScreen
 import com.example.postureapp.ui.home.HomeViewModel
-import com.example.postureapp.ui.indicators.FrontIndicatorsScreen
-import com.example.postureapp.ui.indicators.FrontResultsListScreen
-import com.example.postureapp.ui.indicators.RightSideIndicatorsScreen
+import com.example.postureapp.ui.indicators.front.FrontIndicatorsScreen
+import com.example.postureapp.ui.indicators.right.RightIndicatorsScreen
 import com.example.postureapp.ui.main.MainScaffold
 import com.example.postureapp.ui.processing.ProcessingScreen
 import com.example.postureapp.ui.report.ReportHubScreen
@@ -393,16 +391,6 @@ fun AppNavHost(
                 resultId = resultId,
                 imagePath = imagePath,
                 onResetToEdit = { navController.popBackStack() },
-                onOpenRightSide = { rid, path ->
-                    navController.navigate(Destinations.RightSideIndicators.create(rid, path).route) {
-                        launchSingleTop = true
-                    }
-                },
-                onOpenResults = { rid ->
-                    navController.navigate(Destinations.FrontResultsList.create(rid).route) {
-                        launchSingleTop = true
-                    }
-                }
             )
         }
 
@@ -421,29 +409,12 @@ fun AppNavHost(
         ) { backStackEntry ->
             val rid = backStackEntry.arguments?.getString("rid").orEmpty()
             val path = backStackEntry.arguments?.getString("path").orEmpty()
-            RightSideIndicatorsScreen(
+            RightIndicatorsScreen(
                 resultId = Uri.decode(rid),
                 imagePath = Uri.decode(path),
                 onBack = { navController.popBackStack() }
             )
         }
-
-        composable(
-            route = Destinations.FrontResultsList.routePattern,
-            arguments = listOf(
-                navArgument("rid") {
-                    type = NavType.StringType
-                    nullable = false
-                }
-            )
-        ) { backStackEntry ->
-            val rid = backStackEntry.arguments?.getString("rid").orEmpty()
-            FrontResultsListScreen(
-                resultId = Uri.decode(rid),
-                onBack = { navController.popBackStack() }
-            )
-        }
-
         composable(
             route = Destinations.ReportViewer.routePattern,
             arguments = listOf(

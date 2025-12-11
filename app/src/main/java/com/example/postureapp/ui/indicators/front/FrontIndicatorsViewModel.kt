@@ -1,4 +1,4 @@
-package com.example.postureapp.ui.indicators
+package com.example.postureapp.ui.indicators.front
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

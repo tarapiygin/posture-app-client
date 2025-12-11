@@ -1,4 +1,4 @@
-package com.example.postureapp.ui.indicators
+package com.example.postureapp.ui.indicators.front
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,15 +27,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.postureapp.R
-import com.example.postureapp.ui.indicators.front.FrontIndicatorsPanel
 
 @Composable
 fun FrontIndicatorsScreen(
     resultId: String,
     imagePath: String,
     onResetToEdit: () -> Unit,
-    onOpenRightSide: (String, String) -> Unit,
-    onOpenResults: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: FrontIndicatorsViewModel = hiltViewModel()
 ) {

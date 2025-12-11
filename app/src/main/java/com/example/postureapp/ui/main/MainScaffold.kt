@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
-import com.example.postureapp.core.designsystem.components.CustomTitleTopBar
+import com.example.postureapp.ui.designsystem.components.CustomTitleTopBar
 import com.example.postureapp.ui.navigation.BottomDestinations
 import com.example.postureapp.ui.navigation.Destinations
 import com.example.postureapp.ui.navigation.MainGraphRoute

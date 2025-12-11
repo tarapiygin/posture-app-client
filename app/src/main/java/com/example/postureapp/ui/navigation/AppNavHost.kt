@@ -15,22 +15,22 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.postureapp.core.report.Side
+import com.example.postureapp.core.analysis.Side
 import com.example.postureapp.data.auth.AuthState
 import com.example.postureapp.ui.MainViewModel
-import com.example.postureapp.ui.analysis.AnalysisScreen
+import com.example.postureapp.ui.capture.photo.PhotoCaptureScreen
 import com.example.postureapp.ui.auth.SignInScreen
 import com.example.postureapp.ui.auth.SignUpScreen
-import com.example.postureapp.ui.crop.CropScreen
-import com.example.postureapp.ui.edit.EditLandmarksScreen
+import com.example.postureapp.ui.capture.crop.CropScreen
+import com.example.postureapp.ui.analysis.indicators.edit.EditLandmarksScreen
 import com.example.postureapp.ui.feedback.FeedbackScreen
 import com.example.postureapp.ui.home.HomeScreen
 import com.example.postureapp.ui.home.HomeViewModel
-import com.example.postureapp.ui.indicators.front.FrontIndicatorsScreen
-import com.example.postureapp.ui.indicators.right.RightIndicatorsScreen
+import com.example.postureapp.ui.analysis.indicators.front.FrontIndicatorsScreen
+import com.example.postureapp.ui.analysis.indicators.right.RightIndicatorsScreen
 import com.example.postureapp.ui.main.MainScaffold
-import com.example.postureapp.ui.processing.ProcessingScreen
-import com.example.postureapp.ui.report.ReportHubScreen
+import com.example.postureapp.ui.analysis.processing.ProcessingScreen
+import com.example.postureapp.ui.analysis.AnalysisScreen
 import com.example.postureapp.ui.reports.ReportsScreen
 import com.example.postureapp.ui.reports.ReportViewerScreen
 import com.example.postureapp.ui.settings.AccountSettingsScreen
@@ -192,7 +192,7 @@ fun AppNavHost(
             val sideArg = backStackEntry.arguments?.getString("side") ?: Side.FRONT.name
             val startSide = runCatching { Side.valueOf(sideArg) }.getOrDefault(Side.FRONT)
             val savedStateHandle = backStackEntry.savedStateHandle
-            val hubViewModel: com.example.postureapp.ui.report.ReportHubViewModel = hiltViewModel(backStackEntry)
+            val hubViewModel: com.example.postureapp.ui.analysis.AnalysisViewModel = hiltViewModel(backStackEntry)
 
             val croppedPath by savedStateHandle.getStateFlow("cropped_path", "").collectAsStateWithLifecycle()
             val croppedSideRaw by savedStateHandle.getStateFlow("cropped_side", "").collectAsStateWithLifecycle()
@@ -223,7 +223,7 @@ fun AppNavHost(
                     savedStateHandle["auto_side"] = ""
                 }
             }
-            ReportHubScreen(
+            AnalysisScreen(
                 startSide = startSide,
                 onOpenCamera = { side ->
                     navController.navigate(Destinations.Analysis.create(side).route)
@@ -262,7 +262,7 @@ fun AppNavHost(
         ) { backStackEntry ->
             val sideArg = backStackEntry.arguments?.getString("side") ?: Side.FRONT.name
             val side = runCatching { Side.valueOf(sideArg) }.getOrDefault(Side.FRONT)
-            AnalysisScreen(
+            PhotoCaptureScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToCrop = { encodedPath, rotation ->
                     navController.navigate(Destinations.Crop(encodedPath, rotation, side.name).route)

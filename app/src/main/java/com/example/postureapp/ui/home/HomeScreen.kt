@@ -22,8 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.postureapp.R
-import com.example.postureapp.core.designsystem.components.PrimaryButton
-import com.example.postureapp.core.designsystem.components.SecondaryButton
+import com.example.postureapp.ui.designsystem.components.PrimaryButton
+import com.example.postureapp.ui.designsystem.components.SecondaryButton
 import com.example.postureapp.core.permissions.analysisPermissions
 import com.example.postureapp.core.permissions.areAllGranted
 import com.example.postureapp.core.permissions.openAppSettings

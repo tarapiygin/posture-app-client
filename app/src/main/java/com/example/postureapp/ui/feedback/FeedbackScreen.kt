@@ -19,7 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.postureapp.R
-import com.example.postureapp.core.designsystem.components.PrimaryButton
+import com.example.postureapp.ui.designsystem.components.PrimaryButton
 
 @Composable
 fun FeedbackScreen(modifier: Modifier = Modifier) {

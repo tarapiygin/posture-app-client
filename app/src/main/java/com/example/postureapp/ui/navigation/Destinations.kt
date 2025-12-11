@@ -10,7 +10,7 @@ import androidx.compose.material.icons.rounded.HeadsetMic
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.postureapp.R
-import com.example.postureapp.core.report.Side
+import com.example.postureapp.core.analysis.Side
 
 const val MainGraphRoute = "main"
 
@@ -66,13 +66,13 @@ sealed class Destinations(
     data class Analysis(
         private val side: String = Side.FRONT.name
     ) : Destinations(
-        route = "analysis?side=$side",
+        route = "capture?side=$side",
         titleRes = R.string.analysis_title,
         labelRes = R.string.analysis_title,
         icon = Icons.Rounded.AutoAwesome
     ) {
         companion object {
-            const val routePattern = "analysis?side={side}"
+            const val routePattern = "capture?side={side}"
 
             fun create(side: Side): Analysis = Analysis(side.name)
         }

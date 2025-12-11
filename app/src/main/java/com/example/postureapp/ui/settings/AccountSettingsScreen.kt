@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.postureapp.R
-import com.example.postureapp.core.designsystem.components.PrimaryButton
-import com.example.postureapp.core.designsystem.components.SecondaryButton
+import com.example.postureapp.ui.designsystem.components.PrimaryButton
+import com.example.postureapp.ui.designsystem.components.SecondaryButton
 
 @Composable
 fun AccountSettingsScreen(

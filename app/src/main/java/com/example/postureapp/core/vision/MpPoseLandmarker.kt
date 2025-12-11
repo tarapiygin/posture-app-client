@@ -2,9 +2,9 @@ package com.example.postureapp.core.vision
 
 import android.content.Context
 import android.graphics.Bitmap
-import com.example.postureapp.domain.landmarks.AnatomicalPoint
-import com.example.postureapp.domain.landmarks.Landmark
-import com.example.postureapp.domain.landmarks.LandmarkSet
+import com.example.postureapp.domain.analysis.landmarks.AnatomicalPoint
+import com.example.postureapp.domain.analysis.landmarks.Landmark
+import com.example.postureapp.domain.analysis.landmarks.LandmarkSet
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mediapipe.tasks.core.BaseOptions

@@ -1,17 +1,19 @@
 package com.example.postureapp.ui.analysis
 
+import android.content.ContentResolver
 import android.content.Context
-import android.content.pm.PackageManager
-import android.view.Surface
-import androidx.camera.view.PreviewView
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,561 +22,483 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.postureapp.R
-import com.example.postureapp.core.camera.CameraController
-import com.example.postureapp.core.designsystem.components.PrimaryButton
-import com.example.postureapp.core.designsystem.components.SecondaryButton
 import com.example.postureapp.core.navigation.encodePath
-import com.example.postureapp.core.permissions.analysisPermissions
-import com.example.postureapp.core.permissions.areAllGranted
-import com.example.postureapp.core.permissions.openAppSettings
-import com.example.postureapp.core.permissions.rememberMultiplePermissionsLauncher
-import com.example.postureapp.core.storage.ImageSaver
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
+import com.example.postureapp.core.analysis.Side
+import com.example.postureapp.ui.analysis.indicators.front.FrontIndicatorsPanel
+import com.example.postureapp.ui.analysis.indicators.right.RightIndicatorsPanel
+import com.example.postureapp.ui.analysis.results.ResultsTabScreen
+import java.io.File
+import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalysisScreen(
-    onBack: () -> Unit,
-    onNavigateToCrop: (String, Int) -> Unit,
+    startSide: Side,
+    onOpenCamera: (Side) -> Unit,
+    onOpenCrop: (Side, String, Int) -> Unit,
+    onOpenProcessing: (Side, String, String) -> Unit,
+    onOpenEdit: (Side, String, String) -> Unit,
+    onNavigateToReports: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AnalysisViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val inspectionMode = LocalInspectionMode.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val cameraController = remember(context, inspectionMode) {
-        if (inspectionMode) null else CameraController(context)
-    }
-    val previewView = remember(context, inspectionMode) {
-        if (inspectionMode) {
-            null
-        } else {
-            PreviewView(context).apply {
-                scaleType = PreviewView.ScaleType.FILL_CENTER
-            }
-        }
-    }
 
-    val permissions = remember { analysisPermissions() }
-    var hasPermissions by remember { mutableStateOf(hasAllPermissions(context, permissions)) }
-    var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
-    var flashSupported by remember { mutableStateOf(false) }
-    var torchEnabled by rememberSaveable { mutableStateOf(false) }
-
-    val permissionLauncher = rememberMultiplePermissionsLauncher { result ->
-        val granted = areAllGranted(result)
-        hasPermissions = granted
-        showPermissionDialog = !granted
-    }
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                val granted = hasAllPermissions(context, permissions)
-                hasPermissions = granted
-                if (!granted) {
-                    showPermissionDialog = true
+    var pendingGallerySide by remember { mutableStateOf<Side?>(null) }
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val side = pendingGallerySide ?: uiState.activeSide
+            scope.launch {
+                val path = copyImageToCache(context, uri)
+                if (path != null) {
+                    viewModel.onOriginalCaptured(side, path)
+                    onOpenCrop(side, encodePath(path), 0)
                 }
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
     }
 
-    DisposableEffect(Unit) {
-        viewModel.onAppear()
-        onDispose {
-            viewModel.onDisappear()
-            cameraController?.setTorch(false)
-        }
+    LaunchedEffect(startSide) {
+        viewModel.setStartSide(startSide)
     }
 
     LaunchedEffect(Unit) {
-        if (!hasPermissions) {
-            permissionLauncher(permissions)
-        }
-    }
-
-    LaunchedEffect(hasPermissions, lifecycleOwner, previewView, cameraController) {
-        if (hasPermissions && previewView != null && cameraController != null) {
-            val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
-            cameraController.bindToLifecycle(lifecycleOwner, previewView, rotation)
-            flashSupported = cameraController.hasFlash()
-            if (!flashSupported) {
-                torchEnabled = false
-            }
-        }
-    }
-
-    LaunchedEffect(torchEnabled, flashSupported, cameraController) {
-        if (flashSupported) {
-            cameraController?.setTorch(torchEnabled)
-        }
-    }
-
-    var overlayAngles by remember { mutableStateOf(OverlaySample()) }
-    val latestAngles by rememberUpdatedState(
-        OverlaySample(state.pitch, state.roll, state.aligned)
-    )
-    LaunchedEffect(Unit) {
-        while (isActive) {
-            overlayAngles = latestAngles
-            delay(16L)
-        }
-    }
-
-    val captureError = stringResource(R.string.analysis_error_capture)
-
-    LaunchedEffect(state.error) {
-        val error = state.error
-        if (!error.isNullOrBlank()) {
-            snackbarHostState.showSnackbar(error)
-            viewModel.onErrorShown()
-        }
-    }
-
-    fun capture() {
-        if (!hasPermissions) {
-            showPermissionDialog = true
-            return
-        }
-        if (!viewModel.onShoot()) return
-
-        scope.launch {
-            val controller = cameraController
-            val view = previewView
-            if (controller == null || view == null) {
-                viewModel.onCaptureFinished(captureError)
-                return@launch
-            }
-
-            // rotation сейчас НЕ используем для EXIF, только как запасной вариант
-            val rotation = view.display?.rotation ?: Surface.ROTATION_0
-
-            val file = ImageSaver.createTempCaptureFile(context)
-            controller.takePicture(file)
-                .onSuccess { saved ->
-                    // ВАЖНО: НЕ ПЕРЕПИСЫВАЕМ EXIF ОРИЕНТАЦИЮ!
-                    viewModel.onCaptureFinished()
-
-                    // rotationDegrees передаём как запасной вариант,
-                    // но основной источник правды — EXIF.
-                    onNavigateToCrop(
-                        encodePath(saved.absolutePath),
-                        rotationToDegrees(rotation)
+        viewModel.events.collect { event ->
+            when (event) {
+                is ReportHubEvent.OpenCamera -> onOpenCamera(event.side)
+                is ReportHubEvent.OpenGallery -> {
+                    pendingGallerySide = event.side
+                    galleryLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 }
-                .onFailure { throwable ->
-                    file.delete()
-                    val message = throwable.localizedMessage ?: captureError
-                    viewModel.onCaptureFinished(message)
+
+                is ReportHubEvent.NavigateToProcessing -> {
+                    onOpenProcessing(
+                        event.side,
+                        encodePath(event.croppedPath),
+                        event.resultId
+                    )
                 }
+
+                is ReportHubEvent.NavigateToEdit -> {
+                    onOpenEdit(
+                        event.side,
+                        event.resultId,
+                        event.imagePath
+                    )
+                }
+            }
         }
     }
 
-    val cameraPreviewContent: @Composable (Modifier) -> Unit = { previewModifier ->
-        if (previewView != null && hasPermissions) {
-            AndroidView(
-                factory = { previewView },
-                modifier = previewModifier
-            )
-        } else {
-            Box(
-                modifier = previewModifier
-                    .background(Color.Black)
-            )
-        }
+    val activeTab = uiState.activeTab
+    val activeSide = uiState.activeSide
+    val currentSideState = when (activeTab) {
+        ReportTab.FRONT -> uiState.front
+        ReportTab.RIGHT -> uiState.right
+        ReportTab.RESULTS -> if (activeSide == Side.RIGHT) uiState.right else uiState.front
     }
 
-    AnalysisScreenContent(
-        state = state,
-        overlayAngles = overlayAngles,
-        hasPermissions = hasPermissions,
-        showPermissionDialog = showPermissionDialog,
-        torchVisible = flashSupported,
-        torchEnabled = torchEnabled,
-        snackbarHostState = snackbarHostState,
-        cameraPreviewContent = cameraPreviewContent,
-        onBack = onBack,
-        onShutter = ::capture,
-        onToggleTorch = { torchEnabled = !torchEnabled },
-        onRequestPermissions = { permissionLauncher(permissions) },
-        onDismissPermissionDialog = {
-            showPermissionDialog = false
-            onBack()
-        },
-        onOpenSettings = {
-            openAppSettings(context)
-            showPermissionDialog = false
-        },
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun AnalysisScreenContent(
-    state: AnalysisUiState,
-    overlayAngles: OverlaySample,
-    hasPermissions: Boolean,
-    showPermissionDialog: Boolean,
-    torchVisible: Boolean,
-    torchEnabled: Boolean,
-    snackbarHostState: SnackbarHostState,
-    cameraPreviewContent: @Composable (Modifier) -> Unit,
-    onBack: () -> Unit,
-    onShutter: () -> Unit,
-    onToggleTorch: () -> Unit,
-    onRequestPermissions: () -> Unit,
-    onDismissPermissionDialog: () -> Unit,
-    onOpenSettings: () -> Unit,
-    modifier: Modifier = Modifier
-) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = Color.Black,
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.report_title),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = stringResource(R.string.quick_analysis),
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* no-op info */ }) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_info),
+                            contentDescription = null
+                        )
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            ReportTabs(
+                active = activeTab,
+                onSelect = { tab -> viewModel.selectTab(tab) }
+            )
+        }
     ) { padding ->
         Box(
             modifier = Modifier
-                .fillMaxSize()
                 .padding(padding)
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            if (hasPermissions) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    cameraPreviewContent(Modifier.fillMaxSize())
-                    HorizonOverlay(
-                        pitch = overlayAngles.pitch,
-                        roll = overlayAngles.roll,
-                        aligned = overlayAngles.aligned,
-                        modifier = Modifier.fillMaxSize(),
-                        bottomPadding = if (overlayAngles.aligned) 0.dp else OverlayBottomPadding
-                    )
-                }
-            } else {
-                MissingPermissionState(
-                    modifier = Modifier.fillMaxSize(),
-                    onRequest = onRequestPermissions
+            when (activeTab) {
+                ReportTab.FRONT, ReportTab.RIGHT -> SideContent(
+                    state = currentSideState,
+                    onTakePhoto = viewModel::openSourceChooser,
+                    onStartProcessing = { viewModel.startProcessing(currentSideState.side) },
+                    onResetToEdit = { viewModel.editAgain(currentSideState.side) },
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                ReportTab.RESULTS -> ResultsContent(
+                    onNavigateToReports = onNavigateToReports,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
+        }
+    }
 
-            BottomControls(
+    if (uiState.showSourceSheet) {
+        ModalBottomSheet(
+            onDismissRequest = viewModel::dismissSourceChooser,
+            sheetState = sheetState
+        ) {
+            Column(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                onBack = onBack,
-                onShutter = onShutter,
-                onToggleTorch = onToggleTorch,
-                shutterEnabled = hasPermissions && !state.isCapturing,
-                torchEnabled = torchEnabled,
-                torchVisible = torchVisible
-            )
-
-            if (state.isCapturing) {
-                CaptureOverlay()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.chooser_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = 3.dp,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { viewModel.onPickFromCamera() }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_camera_tile),
+                            contentDescription = null
+                        )
+                        Text(
+                            text = stringResource(R.string.chooser_camera),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = 3.dp,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { viewModel.onPickFromGallery() }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_tab_results),
+                            contentDescription = null
+                        )
+                        Text(
+                            text = stringResource(R.string.chooser_gallery),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.navigationBarsPadding())
             }
         }
     }
-
-    if (showPermissionDialog) {
-        AnalysisPermissionDialog(
-            onOpenSettings = onOpenSettings,
-            onDismiss = onDismissPermissionDialog
-        )
-    }
 }
 
 @Composable
-private fun BottomControls(
-    modifier: Modifier = Modifier,
-    onBack: () -> Unit,
-    onShutter: () -> Unit,
-    onToggleTorch: () -> Unit,
-    shutterEnabled: Boolean,
-    torchEnabled: Boolean,
-    torchVisible: Boolean
+private fun SideContent(
+    state: SideUiState,
+    onTakePhoto: () -> Unit,
+    onStartProcessing: () -> Unit,
+    onResetToEdit: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        SecondaryControlButton(
-            icon = Icons.AutoMirrored.Rounded.ArrowBack,
-            label = stringResource(R.string.action_back),
-            onClick = onBack
-        )
-        ShutterButton(
-            enabled = shutterEnabled,
-            onClick = onShutter
-        )
-        if (torchVisible) {
-            SecondaryControlButton(
-                icon = Icons.Rounded.Bolt,
-                label = stringResource(R.string.analysis_torch_label),
-                onClick = onToggleTorch,
-                selected = torchEnabled,
-                showLabel = false
-            )
-        } else {
-            Spacer(modifier = Modifier.size(56.dp))
+    val bitmap = rememberBitmap(state.croppedPath)
+
+    when {
+        !state.hasImage -> EmptyState(onTakePhoto = onTakePhoto, modifier = modifier)
+        state.hasFinal && state.finalLandmarks != null -> {
+            if (state.side == Side.RIGHT) {
+                RightIndicatorsPanel(
+                    imagePath = state.croppedPath.orEmpty(),
+                    landmarksFinal = state.finalLandmarks,
+                    onResetToEdit = onResetToEdit,
+                    modifier = modifier
+                )
+            } else {
+                FrontIndicatorsPanel(
+                    imagePath = state.croppedPath.orEmpty(),
+                    landmarksFinal = state.finalLandmarks,
+                    onResetToEdit = onResetToEdit,
+                    modifier = modifier
+                )
+            }
+        }
+
+        else -> {
+            Box(
+                modifier = modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(3f / 4f)
+                    )
+                }
+                Surface(
+                    onClick = {
+                        if (state.hasAuto && state.resultId != null) {
+                            onResetToEdit()
+                        } else {
+                            onStartProcessing()
+                        }
+                    },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clip(CircleShape)
+                ) {
+                    Text(
+                        text = stringResource(R.string.cta_tap_to_start),
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun SecondaryControlButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    selected: Boolean = false,
-    showLabel: Boolean = true
+private fun EmptyState(
+    onTakePhoto: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val background = if (selected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-    } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.82f)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            onClick = onTakePhoto,
+            tonalElevation = 4.dp,
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(3f / 4f)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_camera_tile),
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.cta_take_photo),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun ReportTabs(
+    active: ReportTab,
+    onSelect: (ReportTab) -> Unit
+) {
+    Surface(shadowElevation = 8.dp, tonalElevation = 6.dp) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            TabButton(
+                label = stringResource(R.string.tab_front),
+                icon = R.drawable.ic_tab_front,
+                selected = active == ReportTab.FRONT,
+                onClick = { onSelect(ReportTab.FRONT) },
+                modifier = Modifier.weight(1f)
+            )
+            TabButton(
+                label = stringResource(R.string.tab_right),
+                icon = R.drawable.ic_tab_right,
+                selected = active == ReportTab.RIGHT,
+                onClick = { onSelect(ReportTab.RIGHT) },
+                modifier = Modifier.weight(1f)
+            )
+            TabButton(
+                label = stringResource(R.string.tab_results),
+                icon = R.drawable.ic_tab_results,
+                selected = active == ReportTab.RESULTS,
+                onClick = { onSelect(ReportTab.RESULTS) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun TabButton(
+    label: String,
+    icon: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val background = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    else MaterialTheme.colorScheme.surfaceVariant
+    val content = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
     Surface(
-        modifier = Modifier
-            .size(width = 120.dp, height = 56.dp),
-        shape = RoundedCornerShape(18.dp),
+        onClick = onClick,
+        shape = MaterialTheme.shapes.extraLarge,
+        tonalElevation = if (selected) 6.dp else 2.dp,
+        shadowElevation = if (selected) 4.dp else 0.dp,
         color = background,
-        tonalElevation = 6.dp
+        modifier = modifier.height(52.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable(onClick = onClick),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
-                imageVector = icon,
+                painter = painterResource(icon),
                 contentDescription = label,
-                tint = MaterialTheme.colorScheme.onSurface
+                tint = content
             )
-            if (showLabel) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShutterButton(
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(84.dp)
-            .clip(CircleShape)
-            .border(
-                width = 4.dp,
-                color = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
-                shape = CircleShape
-            )
-            .background(Color.Black.copy(alpha = 0.2f))
-            .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(if (enabled) Color.White else MaterialTheme.colorScheme.surfaceVariant)
-        )
-    }
-}
-
-@Composable
-private fun CaptureOverlay() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.55f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CircularProgressIndicator(color = Color.White)
             Text(
-                text = stringResource(R.string.processing_message),
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                textAlign = TextAlign.Center
+                text = label,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = content
             )
         }
     }
 }
 
 @Composable
-private fun MissingPermissionState(
-    modifier: Modifier = Modifier,
-    onRequest: () -> Unit
+private fun ResultsContent(
+    onNavigateToReports: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(
+    ResultsTabScreen(
+        onNavigateToReports = onNavigateToReports,
         modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = stringResource(R.string.perm_rationale),
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color.White,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        PrimaryButton(
-            text = stringResource(R.string.start_analysis),
-            onClick = onRequest
-        )
-    }
-}
-
-@Composable
-private fun AnalysisPermissionDialog(
-    onOpenSettings: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(R.string.perm_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = stringResource(R.string.perm_rationale),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                PrimaryButton(
-                    text = stringResource(R.string.open_settings),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onOpenSettings
-                )
-                SecondaryButton(
-                    text = stringResource(R.string.cancel),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onDismiss
-                )
-            }
-        }
-    }
-}
-
-@Preview(name = "Analysis Screen", showBackground = true)
-@Composable
-private fun AnalysisScreenPreview() {
-    AnalysisScreenContent(
-        state = AnalysisUiState(pitch = 2.3f, roll = -1.1f, aligned = false),
-        overlayAngles = OverlaySample(pitch = 2.3f, roll = -1.1f, aligned = false),
-        hasPermissions = true,
-        showPermissionDialog = false,
-        torchVisible = true,
-        torchEnabled = false,
-        snackbarHostState = remember { SnackbarHostState() },
-        cameraPreviewContent = { previewModifier ->
-            Box(
-                modifier = previewModifier
-                    .fillMaxSize()
-                    .background(Color.DarkGray)
-            )
-        },
-        onBack = {},
-        onShutter = {},
-        onToggleTorch = {},
-        onRequestPermissions = {},
-        onDismissPermissionDialog = {},
-        onOpenSettings = {}
     )
 }
 
-private data class OverlaySample(
-    val pitch: Float = 0f,
-    val roll: Float = 0f,
-    val aligned: Boolean = false
-)
-
-private val OverlayBottomPadding = 148.dp
-
-private fun rotationToDegrees(rotation: Int): Int = when (rotation) {
-    Surface.ROTATION_90 -> 90
-    Surface.ROTATION_180 -> 180
-    Surface.ROTATION_270 -> 270
-    else -> 0
+@Composable
+private fun rememberBitmap(path: String?): ImageBitmap? {
+    if (path.isNullOrBlank()) return null
+    var bitmap by remember(path) { mutableStateOf<ImageBitmap?>(null) }
+    DisposableBitmapLoader(path) { bitmap = it }
+    return bitmap
 }
 
-private fun hasAllPermissions(
-    context: Context,
-    permissions: Array<String>
-): Boolean = permissions.all { permission ->
-    ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+@Composable
+private fun DisposableBitmapLoader(
+    path: String,
+    onLoaded: (ImageBitmap?) -> Unit
+) {
+    LaunchedEffect(path) {
+        val loaded = withContext(Dispatchers.IO) {
+            runCatching { android.graphics.BitmapFactory.decodeFile(path)?.asImageBitmap() }
+                .getOrNull()
+        }
+        onLoaded(loaded)
+    }
 }
+
+private suspend fun copyImageToCache(context: Context, uri: Uri): String? =
+    withContext(Dispatchers.IO) {
+        val resolver: ContentResolver = context.contentResolver
+        val input = resolver.openInputStream(uri) ?: return@withContext null
+        val tempFile = File(context.cacheDir, "picked_${System.currentTimeMillis()}.jpg")
+        input.use { inputStream ->
+            FileOutputStream(tempFile).use { output ->
+                inputStream.copyTo(output)
+            }
+        }
+        tempFile.absolutePath
+    }

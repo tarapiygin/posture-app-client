@@ -2,13 +2,13 @@ package com.example.postureapp.data.reports
 
 import androidx.compose.ui.geometry.Offset
 import androidx.room.TypeConverter
-import com.example.postureapp.domain.landmarks.AnatomicalPoint
-import com.example.postureapp.domain.landmarks.Landmark
-import com.example.postureapp.domain.landmarks.LandmarkSet
-import com.example.postureapp.domain.metrics.FrontMetrics
-import com.example.postureapp.domain.metrics.LevelAngle
-import com.example.postureapp.domain.metrics.right.RightMetrics
-import com.example.postureapp.domain.metrics.right.SegmentAngle
+import com.example.postureapp.domain.analysis.landmarks.AnatomicalPoint
+import com.example.postureapp.domain.analysis.landmarks.Landmark
+import com.example.postureapp.domain.analysis.landmarks.LandmarkSet
+import com.example.postureapp.domain.analysis.front.FrontMetrics
+import com.example.postureapp.domain.analysis.front.LevelAngle
+import com.example.postureapp.domain.analysis.right.RightMetrics
+import com.example.postureapp.domain.analysis.right.SegmentAngle
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

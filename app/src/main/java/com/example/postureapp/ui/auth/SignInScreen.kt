@@ -37,10 +37,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.postureapp.R
-import com.example.postureapp.core.designsystem.PostureTheme
-import com.example.postureapp.core.designsystem.components.CupertinoTextField
-import com.example.postureapp.core.designsystem.components.InlineError
-import com.example.postureapp.core.designsystem.components.PrimaryButton
+import com.example.postureapp.ui.designsystem.PostureTheme
+import com.example.postureapp.ui.designsystem.components.CupertinoTextField
+import com.example.postureapp.ui.designsystem.components.InlineError
+import com.example.postureapp.ui.designsystem.components.PrimaryButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Divider
 

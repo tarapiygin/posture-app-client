@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.postureapp.data.reports.ReportEntity
 import com.example.postureapp.domain.reports.ReportRepository
-import com.example.postureapp.pdf.ReportShare
+import com.example.postureapp.domain.pdf.ReportShare
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
 import javax.inject.Inject

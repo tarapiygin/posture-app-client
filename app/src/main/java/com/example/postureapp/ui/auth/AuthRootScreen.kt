@@ -31,8 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.example.postureapp.R
-import com.example.postureapp.core.designsystem.PostureShapes
-import com.example.postureapp.core.designsystem.components.CustomTitleTopBar
+import com.example.postureapp.ui.designsystem.PostureShapes
+import com.example.postureapp.ui.designsystem.components.CustomTitleTopBar
 
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource

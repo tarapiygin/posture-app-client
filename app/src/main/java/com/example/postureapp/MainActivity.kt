@@ -22,8 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.postureapp.core.designsystem.PostureTheme
-import com.example.postureapp.core.designsystem.SuccessGreen
+import com.example.postureapp.ui.designsystem.PostureTheme
+import com.example.postureapp.ui.designsystem.SuccessGreen
 import com.example.postureapp.ui.BackendStatus
 import com.example.postureapp.ui.MainUiState
 import com.example.postureapp.ui.MainViewModel

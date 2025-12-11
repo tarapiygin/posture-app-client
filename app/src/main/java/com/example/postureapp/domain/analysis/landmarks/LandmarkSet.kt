@@ -1,6 +1,7 @@
 package com.example.postureapp.domain.analysis.landmarks
 
 import androidx.compose.ui.geometry.Offset
+import kotlin.math.abs
 import kotlin.math.hypot
 
 data class LandmarkSet(
@@ -41,8 +42,16 @@ data class LandmarkSet(
      */
     fun toFrontSide(): LandmarkSet {
         val baseMap = points.associateBy { it.point }
-        val synthetic = computeFrontSynthetic(baseMap)
-        val all = mergePoints(synthetic.values)
+        val earAdjustments = computeFrontEarAdjustments(baseMap)
+        val adjustedBase = if (earAdjustments.isEmpty()) {
+            baseMap
+        } else {
+            baseMap.toMutableMap().apply {
+                earAdjustments.forEach { put(it.point, it) }
+            }
+        }
+        val synthetic = computeFrontSynthetic(adjustedBase)
+        val all = mergePoints(synthetic.values + earAdjustments)
         val visible = AnatomicalPoint.FrontVisiblePoints.mapNotNull { all.findPoint(it) }
         return copy(points = visible)
     }
@@ -53,8 +62,14 @@ data class LandmarkSet(
      */
     fun toRightSide(): LandmarkSet {
         val baseMap = points.associateBy { it.point }
+        val rightEarAdjustment = computeRightEarAdjustment(baseMap)
+//        val adjustedBase = if (rightEarAdjustment != null) {
+//            baseMap.toMutableMap().apply { put(AnatomicalPoint.RIGHT_EAR, rightEarAdjustment) }
+//        } else {
+//            baseMap
+//        }
         val synthetic = computeRightSynthetic(baseMap)
-        val all = mergePoints(synthetic.values)
+        val all = mergePoints(listOfNotNull(rightEarAdjustment) + synthetic.values)
         val visible = RightSidePoints.VisiblePoints.mapNotNull { all.findPoint(it) }
         return copy(points = visible)
     }
@@ -155,7 +170,7 @@ data class LandmarkSet(
             // Коэффициенты подбираем по фото
             val c7Offset = shoulder +
                     upDir * (0.3f * neckLen) +   // чуть выше плеча
-                    backDir * (0.4f * neckLen)   // чуть кзади от плеча
+                    backDir * (0.3f * neckLen)   // чуть кзади от плеча
 
             result[AnatomicalPoint.RIGHT_C7] = createSynthetic(
                 point = AnatomicalPoint.RIGHT_C7,
@@ -172,6 +187,39 @@ data class LandmarkSet(
         return result
     }
 
+    private fun computeFrontEarAdjustments(base: Map<AnatomicalPoint, Landmark>): List<Landmark> {
+        val leftEar = base[AnatomicalPoint.LEFT_EAR]
+        val rightEar = base[AnatomicalPoint.RIGHT_EAR]
+        if (leftEar == null || rightEar == null) return emptyList()
+
+        val span = abs(rightEar.x - leftEar.x)
+        val direction = if (rightEar.x >= leftEar.x) 1f else -1f
+        val delta = span * FRONT_EAR_SPREAD_RATIO / 2f
+
+        val leftShifted = leftEar.copy(
+            x = (leftEar.x - direction * delta).coerceIn(0f, 1f)
+        )
+        val rightShifted = rightEar.copy(
+            x = (rightEar.x + direction * delta).coerceIn(0f, 1f)
+        )
+
+        return listOf(leftShifted, rightShifted)
+    }
+
+    private fun computeRightEarAdjustment(base: Map<AnatomicalPoint, Landmark>): Landmark? {
+        val ear = base[AnatomicalPoint.RIGHT_EAR] ?: return null
+        val shoulder = base[AnatomicalPoint.RIGHT_SHOULDER] ?: return null
+        val deltaX = abs(ear.x - shoulder.x) * EAR_HORIZONTAL_OFFSET
+        val shiftedX = (ear.x - deltaX).coerceIn(0f, 1f)
+        return ear.copy(x = shiftedX)
+    }
+
+//    private fun offsetEarTowardShoulder(ear: Landmark, shoulder: Landmark): Landmark {
+//        val deltaX = (shoulder.x - ear.x) * EAR_HORIZONTAL_OFFSET
+//        val shiftedX = (ear.x + deltaX).coerceIn(0f, 1f)
+//        return ear.copy(x = shiftedX)
+//    }
+
 
     private fun mergePoints(newPoints: Collection<Landmark>): List<Landmark> {
         val map = points.associateBy { it.point }.toMutableMap()
@@ -181,6 +229,13 @@ data class LandmarkSet(
 
     private fun List<Landmark>.findPoint(point: AnatomicalPoint): Landmark? =
         firstOrNull { it.point == point }
+
+    private companion object {
+        // раздвигаем точки ушей друг от друга на 20%
+        private const val FRONT_EAR_SPREAD_RATIO = 0.2f
+        // смешение уха к плечу для правого съемки по горизонтали
+        private const val EAR_HORIZONTAL_OFFSET = 1.05f
+    }
 }
 
 private fun interpolate(

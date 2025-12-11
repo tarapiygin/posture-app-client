@@ -279,7 +279,12 @@ object ReportTileRenderer {
             Triple(cx, cy, bw)
         }
 
-        val boxSizeRef = (baseWidthRef * 3f).coerceAtLeast(80f)
+        // Размер кропа не должен превышать размеры исходного изображения,
+        // иначе coerceIn получит max < min и упадёт.
+        val maxBoxSizeRef = kotlin.math.min(refWidth, refHeight).coerceAtLeast(1f)
+        val boxSizeRef = (baseWidthRef * 3f)
+            .coerceAtLeast(80f)
+            .coerceAtMost(maxBoxSizeRef)
         val halfRef = boxSizeRef / 2f
 
         val maxLeftRef = (refWidth - boxSizeRef).coerceAtLeast(0f)

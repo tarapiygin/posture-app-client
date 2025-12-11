@@ -191,6 +191,7 @@
     <string name="table_header_segment">SEGMENT</string>
     <string name="table_header_frontal_tilt">FRONTAL TILT</string>
     <string name="table_header_lateral_shift">LATERAL SHIFT</string>
+    <string name="table_header_deviation">DEVIATION</string>
     <!-- Terms text -->
     <string name="terms_title">TERMS:</string>
     <string name="terms_frontal_tilt">Frontal tilt — yellow lines show asymmetry of height between left and right sides of the segment.</string>

@@ -190,6 +190,7 @@
     <string name="table_header_segment">СЕГМЕНТ</string>
     <string name="table_header_frontal_tilt">ФРОНТ. НАКЛОН</string>
     <string name="table_header_lateral_shift">ЛАТ. СМЕЩЕНИЕ</string>
+    <string name="table_header_deviation">ОТКЛОНЕНИЕ</string>
     <!-- Terms text -->
     <string name="terms_title">ТЕРМИНЫ:</string>
     <string name="terms_frontal_tilt">Фронтальный наклон — жёлтые линии: отражают асимметрию высоты между левой и правой сторонами сегмента.</string>

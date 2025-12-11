@@ -17,3 +17,4 @@ data class ReportSession(
     val right: SideState = SideState(Side.RIGHT)
 )
 
+

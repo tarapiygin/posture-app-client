@@ -234,7 +234,6 @@ class ReportPdfBuilder @Inject constructor(
         metrics: RightMetrics?
     ) {
         val canvas = page.canvas
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         val sectionPaint = Paint().apply {
             textSize = 14f
             isAntiAlias = true
@@ -243,16 +242,16 @@ class ReportPdfBuilder @Inject constructor(
         canvas.drawText(context.getString(R.string.page_right_overview), 32f, 110f, sectionPaint)
 
         if (panel != null) {
-            val left = 32f
-            val top = 130f
+            val left = 32
+            val top = 130
             val targetWidth = 280
-            val targetHeight = (panel.height * (targetWidth.toFloat() / panel.width)).toInt()
-            val scaled = android.graphics.Bitmap.createScaledBitmap(panel, targetWidth, targetHeight, true)
-            canvas.drawBitmap(scaled, left, top, paint)
+            val targetHeight = (panel.height.toFloat() / panel.width.toFloat() * targetWidth).toInt().coerceAtLeast(1)
+            val dest = android.graphics.Rect(left, top, left + targetWidth, top + targetHeight)
+            canvas.drawBitmap(panel, null, dest, null)
         }
 
         val tableLeft = 330f
-        drawRightTable(canvas, tableLeft, 150f, metrics)
+        drawRightTableStyled(canvas, tableLeft, 150f, metrics)
     }
 
     private fun drawRightTiles(
@@ -268,19 +267,20 @@ class ReportPdfBuilder @Inject constructor(
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         val labelPaint = Paint().apply { textSize = 12f; isAntiAlias = true }
         val columns = 2
-        val tileWidth = 240
         val gap = 16
+        val labelHeight = 18
         tiles.forEachIndexed { index, pair ->
             val row = index / columns
             val col = index % columns
-            val x = 32f + col * (tileWidth + gap)
-            val y = 120f + row * (tileWidth + gap + 18)
             val bmp = pair.second
-            val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, tileWidth, tileWidth, true)
-            canvas.drawBitmap(scaled, x, y, paint)
+            val tileW = bmp.width.toFloat()
+            val tileH = bmp.height.toFloat()
+            val x = 32f + col * (tileW + gap)
+            val y = 120f + row * (tileH + gap + labelHeight)
+            canvas.drawBitmap(bmp, x, y, paint)
             val value = rightValue(pair.first, metrics)
             val valueText = value?.let { String.format("%.1f°", it) } ?: context.getString(R.string.not_available_dash)
-            canvas.drawText("${titleFor(pair.first)}: $valueText", x, y + tileWidth + 14, labelPaint)
+            canvas.drawText("${titleFor(pair.first)}: $valueText", x, y + tileH + 14, labelPaint)
         }
     }
 
@@ -520,24 +520,108 @@ class ReportPdfBuilder @Inject constructor(
         return headerHeight + rowsCount * rowHeight
     }
 
-    private fun drawRightTable(canvas: android.graphics.Canvas, left: Float, top: Float, metrics: RightMetrics?) {
-        val headerPaint = Paint().apply { isAntiAlias = true; textSize = 12f; typeface = ResourcesCompat.getFont(context, R.font.inter_semibold) }
-        val valuePaint = Paint().apply { isAntiAlias = true; textSize = 12f }
-        val rows = listOf(
-            context.getString(R.string.metric_body_dev) to metrics?.bodyAngleDeg,
-            context.getString(R.string.label_cva) to metrics?.cvaDeg,
-            context.getString(R.string.metric_knee_dev) to metrics?.segments?.firstOrNull { it.name == "Knee" }?.angleDeg,
-            context.getString(R.string.metric_hip_dev) to metrics?.segments?.firstOrNull { it.name == "Hip" }?.angleDeg,
-            context.getString(R.string.metric_shoulder_dev) to metrics?.segments?.firstOrNull { it.name == "Shoulder" }?.angleDeg,
-            context.getString(R.string.metric_ear_dev) to metrics?.segments?.firstOrNull { it.name == "Ear" }?.angleDeg
-        )
-        canvas.drawText(context.getString(R.string.page_right_overview), left, top, headerPaint)
-        var y = top + 20f
-        rows.forEach { (title, value) ->
-            canvas.drawText(title, left, y, valuePaint)
-            canvas.drawText(formatValue(value), left + 180f, y, valuePaint)
-            y += 20f
+    private fun drawRightTableStyled(canvas: android.graphics.Canvas, left: Float, top: Float, metrics: RightMetrics?) {
+        val colorHeaderBg = android.graphics.Color.parseColor("#E3EDF7")
+        val colorHeaderText = android.graphics.Color.parseColor("#3D5A80")
+        val colorEvenRowBg = android.graphics.Color.parseColor("#F8FAFB")
+        val colorOddRowBg = android.graphics.Color.WHITE
+        val colorGridLine = android.graphics.Color.parseColor("#D1DBE5")
+        val colorNormalValue = android.graphics.Color.parseColor("#4A5568")
+        val colorAlertValue = android.graphics.Color.parseColor("#C53030")
+        val deviationThreshold = 3.0f
+        val bodyDeviationThreshold = 4.0f
+
+        val headerPaint = Paint().apply {
+            isAntiAlias = true
+            textSize = 9f
+            typeface = ResourcesCompat.getFont(context, R.font.inter_semibold)
+            color = colorHeaderText
         }
+        val segmentPaint = Paint().apply {
+            isAntiAlias = true
+            textSize = 10f
+            typeface = ResourcesCompat.getFont(context, R.font.inter_medium)
+            color = colorNormalValue
+        }
+        val valuePaint = Paint().apply {
+            isAntiAlias = true
+            textSize = 10f
+            typeface = ResourcesCompat.getFont(context, R.font.inter_regular)
+        }
+        val gridPaint = Paint().apply {
+            isAntiAlias = true
+            style = Paint.Style.STROKE
+            strokeWidth = 0.5f
+            color = colorGridLine
+        }
+        val fillPaint = Paint().apply { isAntiAlias = true }
+
+        val padding = 6f
+        val headerSegmentWidth = headerPaint.measureText(context.getString(R.string.table_header_segment))
+        val headerDevWidth = headerPaint.measureText(context.getString(R.string.table_header_deviation))
+
+        data class Row(val segment: String, val value: Float?, val isBody: Boolean = false)
+        val rows = listOf(
+            Row(context.getString(R.string.label_cva), metrics?.cvaDeg),
+            Row(context.getString(R.string.metric_knee_dev), metrics?.segments?.firstOrNull { it.name == "Knee" }?.angleDeg),
+            Row(context.getString(R.string.metric_hip_dev), metrics?.segments?.firstOrNull { it.name == "Hip" }?.angleDeg),
+            Row(context.getString(R.string.metric_shoulder_dev), metrics?.segments?.firstOrNull { it.name == "Shoulder" }?.angleDeg),
+            Row(context.getString(R.string.metric_ear_dev), metrics?.segments?.firstOrNull { it.name == "Ear" }?.angleDeg),
+            Row(context.getString(R.string.metric_body_dev), metrics?.bodyAngleDeg, isBody = true)
+        )
+
+        val rowHeight = 20f
+        val headerHeight = 22f
+
+        val maxSegmentWidth = (rows.maxOfOrNull { segmentPaint.measureText(it.segment) } ?: 0f).coerceAtLeast(headerSegmentWidth)
+        val maxValueWidth = (rows.maxOfOrNull { valuePaint.measureText(it.value?.let { v -> String.format("%.1f°", v) } ?: context.getString(R.string.not_available_dash)) } ?: 0f)
+            .coerceAtLeast(headerDevWidth)
+
+        val colSegment = maxSegmentWidth + padding * 2
+        val colValue = maxValueWidth + padding * 2
+        val tableWidth = colSegment + colValue
+
+        var y = top
+
+        // Header
+        fillPaint.color = colorHeaderBg
+        canvas.drawRect(left, y, left + tableWidth, y + headerHeight, fillPaint)
+        canvas.drawText(context.getString(R.string.table_header_segment), left + padding, y + 15f, headerPaint)
+        canvas.drawText(context.getString(R.string.table_header_deviation), left + colSegment + padding, y + 15f, headerPaint)
+        y += headerHeight
+
+        rows.forEachIndexed { index, row ->
+            val rowTop = y
+            val rowBottom = y + rowHeight
+            fillPaint.color = if (index % 2 == 0) colorOddRowBg else colorEvenRowBg
+            canvas.drawRect(left, rowTop, left + tableWidth, rowBottom, fillPaint)
+
+            canvas.drawText(row.segment, left + padding, rowTop + 14f, segmentPaint)
+
+            val valueText = row.value?.let { String.format("%.1f°", it) } ?: context.getString(R.string.not_available_dash)
+            val isCva = row.segment == context.getString(R.string.label_cva)
+            val threshold = when {
+                row.isBody -> bodyDeviationThreshold
+                isCva -> 48f // CVA alert if less than 48°
+                else -> deviationThreshold
+            }
+            val isAlert = row.value != null && (
+                if (isCva) row.value < threshold else kotlin.math.abs(row.value) > threshold
+            )
+            valuePaint.color = if (isAlert) colorAlertValue else colorNormalValue
+            valuePaint.typeface = if (isAlert) ResourcesCompat.getFont(context, R.font.inter_semibold) else ResourcesCompat.getFont(context, R.font.inter_regular)
+            canvas.drawText(valueText, left + colSegment + padding, rowTop + 14f, valuePaint)
+
+            canvas.drawLine(left, rowBottom, left + tableWidth, rowBottom, gridPaint)
+            y = rowBottom
+        }
+
+        // Grid
+        canvas.drawLine(left, top, left, y, gridPaint)
+        canvas.drawLine(left + colSegment, top, left + colSegment, y, gridPaint)
+        canvas.drawLine(left + tableWidth, top, left + tableWidth, y, gridPaint)
+        gridPaint.strokeWidth = 1f
+        canvas.drawRect(left, top, left + tableWidth, y, gridPaint)
     }
 
     private fun drawNotProvided(canvas: android.graphics.Canvas, left: Float, top: Float) {

@@ -61,6 +61,9 @@
     <string name="analysis_hint_lower">Приподнимите камеру</string>
     <string name="analysis_torch_label">Фонарик</string>
     <string name="analysis_error_capture">Не удалось сделать фото. Попробуйте снова.</string>
+    <string name="analysis_reset_prompt">Вы действительно хотите очистить текущую сессию анализа?</string>
+    <string name="action_yes">Да</string>
+    <string name="action_no">Нет</string>
 
     <string name="processing_title">Обработка</string>
     <string name="processing_message">Изображение обрабатывается</string>

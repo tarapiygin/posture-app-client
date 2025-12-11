@@ -250,6 +250,7 @@ fun AppNavHost(
                         restoreState = true
                     }
                 },
+                onNavigateHome = { navController.popBackStack() },
                 modifier = Modifier
             )
         }
@@ -354,7 +355,16 @@ fun AppNavHost(
                 resultId = resultId,
                 imagePath = decodedPath,
                 side = side,
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    val hubRoute = Destinations.ReportHub.create(side).route
+                    val popped = navController.popBackStack(hubRoute, false)
+                    if (!popped) {
+                        navController.navigate(hubRoute) {
+                            popUpTo(Destinations.ReportHub.create(side).route) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    }
+                },
                 onNavigateToIndicators = { rid, path ->
                     val hubRoute = Destinations.ReportHub.create(side).route
                     val hubEntry = runCatching { navController.getBackStackEntry(hubRoute) }.getOrNull()

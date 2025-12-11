@@ -27,7 +27,8 @@ class AnalysisViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val activeSide = MutableStateFlow(savedStateHandle.restoreSide())
+    private var initialSide: Side = savedStateHandle.restoreSide()
+    private val activeSide = MutableStateFlow(initialSide)
     private val activeTab: MutableStateFlow<ReportTab> = MutableStateFlow(ReportTab.FRONT)
     private val showSourceSheet = MutableStateFlow(false)
 
@@ -60,6 +61,7 @@ class AnalysisViewModel @Inject constructor(
     )
 
     fun setStartSide(side: Side) {
+        initialSide = side
         activeSide.value = side
         activeTab.value = ReportTab.fromSide(side)
     }
@@ -133,6 +135,14 @@ class AnalysisViewModel @Inject constructor(
         viewModelScope.launch {
             _events.send(ReportHubEvent.NavigateToEdit(target, resultId, path))
         }
+    }
+
+    fun resetSession(side: Side? = null) {
+        coordinator.reset()
+        val targetSide = side ?: initialSide
+        activeSide.value = targetSide
+        activeTab.value = ReportTab.fromSide(targetSide)
+        showSourceSheet.value = false
     }
 
     private fun SideState.toUiState(): SideUiState {

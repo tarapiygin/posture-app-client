@@ -3,6 +3,7 @@ package com.example.postureapp.ui.analysis
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +32,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -74,6 +77,7 @@ fun AnalysisScreen(
     onOpenProcessing: (Side, String, String) -> Unit,
     onOpenEdit: (Side, String, String) -> Unit,
     onNavigateToReports: () -> Unit,
+    onNavigateHome: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AnalysisViewModel = hiltViewModel()
 ) {
@@ -83,6 +87,7 @@ fun AnalysisScreen(
     val scope = rememberCoroutineScope()
 
     var pendingGallerySide by remember { mutableStateOf<Side?>(null) }
+    var showResetDialog by remember { mutableStateOf(false) }
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -100,6 +105,15 @@ fun AnalysisScreen(
 
     LaunchedEffect(startSide) {
         viewModel.setStartSide(startSide)
+    }
+
+    BackHandler(enabled = true) {
+        if (uiState.showSourceSheet) {
+            viewModel.dismissSourceChooser()
+            return@BackHandler
+        }
+        viewModel.resetSession(startSide)
+        onNavigateHome()
     }
 
     LaunchedEffect(Unit) {
@@ -158,10 +172,12 @@ fun AnalysisScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* no-op info */ }) {
+                    IconButton(onClick = { showResetDialog = true }) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_info),
-                            contentDescription = null
+                            painter = painterResource(R.drawable.ic_delete),
+                            contentDescription = null,
+                            modifier = Modifier.size(29.dp),
+                            tint = MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -170,7 +186,8 @@ fun AnalysisScreen(
         bottomBar = {
             ReportTabs(
                 active = activeTab,
-                onSelect = { tab -> viewModel.selectTab(tab) }
+                onSelect = { tab -> viewModel.selectTab(tab) },
+                modifier = Modifier.navigationBarsPadding()
             )
         }
     ) { padding ->
@@ -195,6 +212,28 @@ fun AnalysisScreen(
                 )
             }
         }
+    }
+
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            text = { Text(text = stringResource(R.string.analysis_reset_prompt)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showResetDialog = false
+                        viewModel.resetSession(startSide)
+                    }
+                ) {
+                    Text(text = stringResource(R.string.action_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text(text = stringResource(R.string.action_no))
+                }
+            }
+        )
     }
 
     if (uiState.showSourceSheet) {
@@ -383,9 +422,14 @@ private fun EmptyState(
 @Composable
 private fun ReportTabs(
     active: ReportTab,
-    onSelect: (ReportTab) -> Unit
+    onSelect: (ReportTab) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Surface(shadowElevation = 8.dp, tonalElevation = 6.dp) {
+    Surface(
+        shadowElevation = 8.dp,
+        tonalElevation = 6.dp,
+        modifier = modifier
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

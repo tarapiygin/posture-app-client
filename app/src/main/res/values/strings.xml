@@ -62,6 +62,9 @@
     <string name="analysis_hint_lower">Raise the camera</string>
     <string name="analysis_torch_label">Torch</string>
     <string name="analysis_error_capture">Cannot capture photo. Try again.</string>
+    <string name="analysis_reset_prompt">Do you really want to clear the current analysis session?</string>
+    <string name="action_yes">Yes</string>
+    <string name="action_no">No</string>
 
     <string name="processing_title">Processing</string>
     <string name="processing_message">Image is being processed</string>

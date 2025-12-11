@@ -105,7 +105,7 @@ enum class AnatomicalPoint(
         labelRes = R.string.point_tibial_tuberosity_left,
         overlayCode = "TTL",
         editable = true,
-        referenceDrawableRes = R.drawable.ref_left_knee,
+        referenceDrawableRes = R.drawable.ref_tibial_tuberosity_left,
         helpTextRes = R.string.help_tibial_tuberosity_left,
         synthetic = true
     ),
@@ -113,7 +113,7 @@ enum class AnatomicalPoint(
         labelRes = R.string.point_tibial_tuberosity_right,
         overlayCode = "TTR",
         editable = true,
-        referenceDrawableRes = R.drawable.ref_right_knee,
+        referenceDrawableRes = R.drawable.ref_tibial_tuberosity_right,
         helpTextRes = R.string.help_tibial_tuberosity_right,
         synthetic = true
     ),
@@ -121,7 +121,7 @@ enum class AnatomicalPoint(
         labelRes = R.string.point_jugular_notch,
         overlayCode = "JN",
         editable = true,
-        referenceDrawableRes = R.drawable.ref_left_shoulder,
+        referenceDrawableRes = R.drawable.ref_jugular_notch,
         helpTextRes = R.string.help_jugular_notch,
         synthetic = true
     );

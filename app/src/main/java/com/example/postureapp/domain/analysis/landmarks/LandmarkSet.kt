@@ -140,23 +140,22 @@ data class LandmarkSet(
     private fun computeRightSynthetic(base: Map<AnatomicalPoint, Landmark>): Map<AnatomicalPoint, Landmark> {
         val result = mutableMapOf<AnatomicalPoint, Landmark>()
         val rightShoulder = base[AnatomicalPoint.RIGHT_SHOULDER]
-        val leftShoulder = base[AnatomicalPoint.LEFT_SHOULDER]
-        val rightHip = base[AnatomicalPoint.RIGHT_HIP]
-        val leftHip = base[AnatomicalPoint.LEFT_HIP]
         val rightEar = base[AnatomicalPoint.RIGHT_EAR]
 
-        if (rightShoulder != null && leftShoulder != null && rightHip != null && leftHip != null && rightEar != null) {
-            val shoulderMid = midpoint(leftShoulder, rightShoulder)
-            val hipMid = midpoint(leftHip, rightHip)
-            val trunkVec = normalize(shoulderMid - hipMid)
-            val trunkLen = distance(shoulderMid, hipMid)
-
-            val neckVec = normalize(rightEar.toOffset() - rightShoulder.toOffset())
+        if (rightShoulder != null && rightEar != null) {
             val neckLen = distance(rightEar, rightShoulder)
 
-            val c7Offset = shoulderMid +
-                trunkVec * (0.06f * trunkLen) +
-                neckVec * (0.20f * neckLen)
+            val shoulder = rightShoulder.toOffset()
+
+            // Для правого профиля:
+            // вверх – по y отрицательно, назад – влево по x
+            val upDir = Offset(0f, -1f)
+            val backDir = Offset(-1f, 0f)
+
+            // Коэффициенты подбираем по фото
+            val c7Offset = shoulder +
+                    upDir * (0.3f * neckLen) +   // чуть выше плеча
+                    backDir * (0.4f * neckLen)   // чуть кзади от плеча
 
             result[AnatomicalPoint.RIGHT_C7] = createSynthetic(
                 point = AnatomicalPoint.RIGHT_C7,
@@ -165,16 +164,14 @@ data class LandmarkSet(
                 z = null,
                 visibility = combineVisibility(
                     rightEar.visibility,
-                    rightShoulder.visibility,
-                    leftShoulder.visibility,
-                    rightHip.visibility,
-                    leftHip.visibility
+                    rightShoulder.visibility
                 )
             )
         }
 
         return result
     }
+
 
     private fun mergePoints(newPoints: Collection<Landmark>): List<Landmark> {
         val map = points.associateBy { it.point }.toMutableMap()

@@ -20,6 +20,8 @@ data class ReportEntity(
     val serverId: String? = null,
     val syncStatus: String = "PENDING",
     val version: Int = 1,
-    val userId: String? = null
+    val userId: String? = null,
+    val lastSyncError: String? = null,
+    val sessionClientId: String = id
 )
 

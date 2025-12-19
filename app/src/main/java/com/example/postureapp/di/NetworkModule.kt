@@ -2,6 +2,9 @@ package com.example.postureapp.di
 
 import com.example.postureapp.BuildConfig
 import com.example.postureapp.core.config.AppConfig
+import com.example.postureapp.core.network.api.PhotosApi
+import com.example.postureapp.core.network.api.ReportsApi
+import com.example.postureapp.core.network.api.SessionsApi
 import com.example.postureapp.core.network.AuthInterceptor
 import com.example.postureapp.core.network.OkHttpProvider
 import com.example.postureapp.core.network.RetrofitProvider
@@ -104,5 +107,20 @@ object NetworkModule {
     @Singleton
     fun provideHealthApi(retrofit: Retrofit): HealthApi =
         retrofit.create(HealthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideReportsApi(retrofit: Retrofit): ReportsApi =
+        retrofit.create(ReportsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSessionsApi(retrofit: Retrofit): SessionsApi =
+        retrofit.create(SessionsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun providePhotosApi(retrofit: Retrofit): PhotosApi =
+        retrofit.create(PhotosApi::class.java)
 }
 

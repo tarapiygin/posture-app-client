@@ -28,7 +28,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            buildConfigField("boolean", "BYPASS_AUTH", "true")
+            buildConfigField("boolean", "BYPASS_AUTH", "false")
         }
         release {
             isMinifyEnabled = false

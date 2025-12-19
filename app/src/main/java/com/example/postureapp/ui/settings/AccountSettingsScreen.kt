@@ -8,10 +8,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -25,6 +30,8 @@ fun AccountSettingsScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -72,9 +79,34 @@ fun AccountSettingsScreen(
             SecondaryButton(
                 text = stringResource(R.string.action_logout),
                 modifier = Modifier.fillMaxWidth(),
-                onClick = onLogout
+                onClick = { showLogoutDialog = true }
             )
         }
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text(text = stringResource(R.string.logout_confirm_title)) },
+            text = { Text(text = stringResource(R.string.logout_confirm_message)) },
+            confirmButton = {
+                PrimaryButton(
+                    text = stringResource(R.string.action_logout),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    }
+                )
+            },
+            dismissButton = {
+                SecondaryButton(
+                    text = stringResource(R.string.cancel),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { showLogoutDialog = false }
+                )
+            }
+        )
     }
 }
 

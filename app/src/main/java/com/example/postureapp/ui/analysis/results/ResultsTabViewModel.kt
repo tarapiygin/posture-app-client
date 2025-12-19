@@ -12,11 +12,14 @@ import com.example.postureapp.core.analysis.Side
 import com.example.postureapp.data.analysis.processing.ProcessingStore
 import com.example.postureapp.data.analysis.AnalysisCoordinator
 import com.example.postureapp.data.analysis.SideState
+import com.example.postureapp.data.reports.ReportAssetEntity
+import com.example.postureapp.data.reports.ReportAssetUtils
 import com.example.postureapp.data.reports.ReportConverters
 import com.example.postureapp.data.reports.ReportEntity
 import com.example.postureapp.domain.analysis.front.ComputeFrontMetricsUseCase
 import com.example.postureapp.domain.analysis.right.ComputeRightMetricsUseCase
 import com.example.postureapp.domain.reports.ReportRepository
+import com.example.postureapp.domain.reports.ReportAssetsRepository
 import com.example.postureapp.domain.pdf.FrontRenderData
 import com.example.postureapp.domain.pdf.ReportPdfBuilder
 import com.example.postureapp.domain.pdf.ReportRenderData
@@ -48,6 +51,7 @@ class ResultsTabViewModel @Inject constructor(
     private val computeRightMetrics: ComputeRightMetricsUseCase,
     private val pdfBuilder: ReportPdfBuilder,
     private val reportRepository: ReportRepository,
+    private val assetsRepository: ReportAssetsRepository,
     private val shareHelper: ReportShare,
     @ApplicationContext private val context: Context,
     json: Json
@@ -196,6 +200,7 @@ class ResultsTabViewModel @Inject constructor(
                     createdAt = now,
                     updatedAt = now,
                     sessionId = renderData.sessionId,
+                    sessionClientId = reportId,
                     frontImagePath = renderData.front?.imagePath,
                     rightImagePath = renderData.right?.imagePath,
                     frontLandmarksJson = converters.encodeLandmarks(renderData.front?.landmarks),
@@ -210,6 +215,28 @@ class ResultsTabViewModel @Inject constructor(
                     userId = null
                 )
                 reportRepository.upsert(entity)
+                val assets = mutableListOf<ReportAssetEntity>()
+                renderData.front?.imagePath?.let { path ->
+                    addAsset(
+                        assets = assets,
+                        reportId = reportId,
+                        side = "FRONT",
+                        kind = "CROPPED",
+                        path = path,
+                        createdAt = now
+                    )
+                }
+                renderData.right?.imagePath?.let { path ->
+                    addAsset(
+                        assets = assets,
+                        reportId = reportId,
+                        side = "RIGHT",
+                        kind = "CROPPED",
+                        path = path,
+                        createdAt = now
+                    )
+                }
+                assets.forEach { assetsRepository.upsert(it) }
                 coordinator.reset()
                 _events.send(ResultsTabEvent.NavigateToReports)
             }.onFailure {
@@ -236,6 +263,35 @@ class ResultsTabViewModel @Inject constructor(
             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
         }
         file
+    }
+
+    private fun addAsset(
+        assets: MutableList<ReportAssetEntity>,
+        reportId: String,
+        side: String,
+        kind: String,
+        path: String,
+        createdAt: Long
+    ) {
+        val file = File(path)
+        val sha = ReportAssetUtils.computeSha256(file)
+        val bounds = ReportAssetUtils.decodeBounds(file)
+        assets.add(
+            ReportAssetEntity(
+                id = UUID.randomUUID().toString(),
+                reportId = reportId,
+                side = side,
+                kind = kind,
+                localPath = path,
+                sha256 = sha,
+                width = bounds?.first,
+                height = bounds?.second,
+                serverId = null,
+                syncStatus = "PENDING",
+                createdAt = createdAt,
+                updatedAt = createdAt
+            )
+        )
     }
 }
 

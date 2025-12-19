@@ -1,6 +1,7 @@
 package com.example.postureapp.domain.auth
 
 import com.example.postureapp.data.auth.AuthRepository
+import com.example.postureapp.domain.cleanup.ClearLocalDataUseCase
 import com.example.postureapp.domain.auth.model.AuthTokens
 import com.example.postureapp.domain.auth.model.User
 import javax.inject.Inject
@@ -41,9 +42,13 @@ class LoadMeUseCase @Inject constructor(
 }
 
 class LogoutUseCase @Inject constructor(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    private val clearLocalDataUseCase: ClearLocalDataUseCase
 ) {
-    suspend operator fun invoke() = repository.logout()
+    suspend operator fun invoke() {
+        clearLocalDataUseCase()
+        repository.logout()
+    }
 }
 
 class VerifyTokenUseCase @Inject constructor(

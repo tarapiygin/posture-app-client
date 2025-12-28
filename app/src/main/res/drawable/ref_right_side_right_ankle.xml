@@ -1,0 +1,29 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Background -->
+    <path
+        android:fillColor="#FFEDE7F6"
+        android:pathData="M0,0h120v120h-120z" />
+    <!-- Circle with ankle color (purple) -->
+    <path
+        android:fillColor="#33673AB7"
+        android:strokeColor="#FF673AB7"
+        android:strokeWidth="4"
+        android:pathData="M60,26a34,34 0,1 1 0,68a34,34 0,1 1 0,-68" />
+    <!-- Cross marker -->
+    <path
+        android:strokeColor="#66673AB7"
+        android:strokeWidth="3"
+        android:pathData="M60,36v48M36,60h48" />
+    <!-- Text "RA" -->
+    <path
+        android:fillColor="#FF673AB7"
+        android:pathData="M48,65 L48,55 L52,55 Q56,55 56,59 Q56,61.5 53,62 L56,67 L52,67 L49.5,62 L51,62 L51,65 Z M51,59 L51,60 L52,60 Q53,60 53,59 Q53,58 52,58 L51,58 Z" />
+    <path
+        android:fillColor="#FF673AB7"
+        android:pathData="M60,65 L60,55 L66,55 L66,58 L63,58 L63,65 Z M66,62 L63,62 L63,59 L66,59 Z" />
+</vector>
+

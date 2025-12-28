@@ -24,11 +24,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.postureapp.R
+import com.example.postureapp.core.analysis.Side
 import com.example.postureapp.domain.analysis.landmarks.AnatomicalPoint
 
 @Composable
 fun ReferencePanel(
     point: AnatomicalPoint,
+    side: Side,
     onHelp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -43,7 +45,7 @@ fun ReferencePanel(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Image(
-                painter = painterResource(id = point.referenceDrawableRes),
+                painter = painterResource(id = point.getReferenceDrawable(side)),
                 contentDescription = stringResource(id = point.labelRes),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop

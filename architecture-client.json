@@ -4,39 +4,59 @@
     "platform": "Android (Jetpack Compose, Kotlin)",
     "architecture_style": ["Layered", "MVVM", "Clean-ish"],
     "dependency_injection": "Hilt",
-    "entrypoints": ["PostureApp (Hilt bootstrap)", "MainActivity (sets theme + NavHost)"]
+    "entrypoints": [
+      "PostureApp (Hilt bootstrap)",
+      "MainActivity (edge-to-edge theme + NavHost + backend health banner)"
+    ]
   },
   "layers": {
     "core": {
       "responsibilities": [
         "App config from assets/android-client-config.json",
-        "Network stack (Retrofit/OkHttp, auth/refresh interceptors)",
+        "Network stack (Retrofit/OkHttp, auth/refresh interceptors + logging)",
         "Secure token storage (Encrypted DataStore)",
-        "CameraX capture + orientation sensing",
+        "CameraX capture + OrientationManager (pitch/roll for leveling)",
         "Image decoding, MediaPipe pose landmarking, vision utilities",
         "Graphics transforms for overlays and report rendering",
         "Local file helpers (ImageSaver), permissions/utils"
       ],
       "key_components": {
-        "config": "AppConfig resolves base URLs, auth endpoints, timeouts",
-        "network": ["AuthInterceptor injects bearer header", "TokenAuthenticator refreshes tokens", "OkHttpProvider/RetrofitProvider"],
+        "config": "AppConfig resolves base URLs, auth endpoints, timeouts from android-client-config.json",
+        "network": [
+          "AuthInterceptor injects bearer header except auth endpoints",
+          "TokenAuthenticator refreshes tokens via refresh API",
+          "OkHttpProvider/RetrofitProvider + HttpLoggingInterceptor",
+          "ApiErrorParser for Problem+json payloads"
+        ],
         "security": "SecureTokenStore + CryptoManager for access/refresh tokens",
         "camera": ["CameraController (CameraX)", "OrientationManager"],
-        "vision": ["MpPoseLandmarker uses assets/models/pose_landmarker_full.task", "ImageDecoderFacade/Transcode helpers"],
-        "reports_rendering": "ReportTileRenderer + DrawingUtils for PDF bitmaps"
+        "vision": [
+          "ImageDecoderFacade / decodeBitmap",
+          "MpPoseLandmarker uses assets/models/pose_landmarker_full.task (MediaPipe)"
+        ],
+        "reports_rendering": "ReportTileRenderer + DrawingUtils for PDF/preview bitmaps",
+        "storage": "ImageSaver creates capture files & writes EXIF orientation"
       }
     },
     "data": {
       "responsibilities": [
-        "Call remote APIs (AuthApi, HealthApi)",
+        "Call remote APIs (AuthApi, HealthApi, SessionsApi, PhotosApi, ReportsApi/ReportsSyncApi)",
         "Coordinate analysis session state and in-memory landmark results",
-        "Persist reports via Room"
+        "Persist reports and linked assets via Room"
       ],
       "key_components": {
-        "auth": "AuthRepository orchestrates login/register/me/refresh, maps API errors via ApiErrorParser, syncs SecureTokenStore + auth state",
+        "auth": "AuthRepository orchestrates register/login/refresh/verify/me, maps API errors via ApiErrorParser, syncs SecureTokenStore + auth state flows",
         "system": "HealthRepository pings health endpoint",
-        "analysis": ["AnalysisCoordinator tracks session per side (original/cropped/result flags)", "ProcessingStore caches auto/final LandmarkSet by resultId"],
-        "reports": "ReportsDatabase/Dao + ReportRepository for CRUD and file cleanup"
+        "analysis": [
+          "AnalysisCoordinator tracks ReportSession per side (original/cropped/result flags)",
+          "ProcessingStore caches auto/final LandmarkSet by resultId"
+        ],
+        "reports": [
+          "ReportsDatabase (reports.db) with ReportsDao + ReportAssetsDao",
+          "ReportRepository for CRUD, sync flags, sessionId updates, file cleanup",
+          "ReportAssetsRepository for CROPPED/ORIGINAL assets per side with sha/dim metadata",
+          "ReportConverters encode/decode landmarks & metrics, ReportAssetUtils sha256/dimensions"
+        ]
       }
     },
     "domain": {
@@ -45,23 +65,36 @@
         "auth": "AuthUseCases (signIn/signUp/refresh/loadMe/logout/verify)",
         "analysis_processing": "ProcessCroppedImageUseCase decodes bitmap -> MpPoseLandmarker -> LandmarkSet",
         "metrics": ["ComputeFrontMetricsUseCase", "ComputeRightMetricsUseCase"],
-        "pdf": ["ReportPdfBuilder builds multi-page PDF from render data", "ReportShare shares PDFs", "ReportRenderData aggregates metrics + landmarks"],
-        "reports": "ReportRepository exposed to UI"
+        "pdf": [
+          "ReportPdfBuilder builds multi-page PDF from render data",
+          "ReportShare shares PDFs via FileProvider",
+          "ReportRenderData aggregates metrics + landmarks"
+        ],
+        "reports": [
+          "ReportRepository/ReportAssetsRepository exposed to UI & sync",
+          "SyncAllReportsUseCase (sessions/photos upload, reports upload, delta download + thumbnails)",
+          "SyncReportsUseCase (legacy simple uploader)",
+          "DeleteReportUseCase, PdfThumbnailGenerator"
+        ],
+        "cleanup": "ClearLocalDataUseCase wipes DB/files on logout"
       }
     },
     "ui": {
       "responsibilities": ["Compose screens, ViewModels, navigation"],
-      "navigation": "AppNavHost defines Auth graph + Main graph (Home/Reports/Feedback/Account) + analysis flow (capture->crop->processing->edit->indicators->viewer)",
+      "navigation": "AppNavHost: Auth graph (SignIn/SignUp) -> Main graph (Home/Reports/Feedback/Account) -> analysis flow (ReportHub tabs Front/Right/Results -> Capture -> Crop -> Processing -> Edit -> Indicators/Results) -> ReportViewer",
       "viewmodels": {
-        "MainViewModel": "Resolves start destination, checks backend health, exposes auth state",
+        "MainViewModel": "Resolves start destination (with BuildConfig.BYPASS_AUTH dev bypass), checks backend health, exposes auth state",
         "Auth": "SignIn/SignUp viewmodels validate input, call AuthUseCases, emit navigation events",
-        "Home": "HomeViewModel manages permissions UI",
-        "AnalysisHub": "AnalysisViewModel drives session tabs, source chooser, navigation events to capture/crop/process/edit",
+        "Home": "HomeViewModel manages permissions and entry to analysis flow",
+        "AnalysisHub": "AnalysisViewModel drives session tabs (Front/Right/Results), source chooser, navigation to capture/crop/process/edit",
+        "PhotoCapture": "PhotoCaptureViewModel tracks orientation alignment + capture state",
         "Processing": "ProcessingViewModel runs pose detection, stores auto landmarks, routes to edit",
-        "EditLandmarks": "Loads auto/final landmarks from ProcessingStore, supports drag/undo/reset, commits final set",
-        "Indicators": "Front/RightIndicatorsViewModel fetch final landmarks, compute metrics",
-        "Reports": "ReportsListViewModel loads Room data & sharing; ReportViewerViewModel renders PDF pages",
-        "AccountSettings": "Simple logout via MainViewModel"
+        "EditLandmarks": "Loads auto/final landmarks from ProcessingStore, normalizes per side, supports drag/undo/reset/help, commits final set",
+        "Indicators": "Front/RightIndicatorsViewModel fetch final set, compute metrics",
+        "ResultsTab": "ResultsTabViewModel builds ReportRenderData from session, renders previews, shares or saves report + assets to DB, then resets session",
+        "Reports": "ReportsListViewModel loads Room data, syncs with backend, share/delete; ReportViewerViewModel renders PDF pages",
+        "AccountSettings": "Logout via MainViewModel/ClearLocalData",
+        "Feedback": "Static feedback screen"
       }
     }
   },
@@ -69,8 +102,8 @@
     "startup_and_auth": {
       "flow": [
         "MainActivity -> MainViewModel",
-        "resolveStartDestination: AuthRepository.hasStoredSession + AuthUseCases.loadMe or Auth logout fallback",
-        "Backend health check via HealthRepository.ping toggles banner",
+        "resolveStartDestination: BuildConfig.BYPASS_AUTH (debug) -> fake session OR AuthRepository.hasStoredSession + AuthUseCases.loadMe, else logout + Auth graph",
+        "Backend health check via HealthRepository.ping toggles status banner",
         "Nav graph switches between AuthRoot and MainGraph based on AuthState"
       ]
     },
@@ -83,8 +116,8 @@
     },
     "capture_to_landmarks": {
       "flow": [
-        "AnalysisScreen/AnalysisViewModel manage session by side (FRONT/RIGHT) via AnalysisCoordinator",
-        "PhotoCaptureScreen uses CameraController + OrientationManager; result saved via ImageSaver and sent to CropScreen",
+        "ReportHub (AnalysisScreen) controls sides + source picker via AnalysisViewModel",
+        "PhotoCaptureScreen uses CameraController + OrientationManager; capture saved via ImageSaver and sent to CropScreen",
         "CropScreen returns cropped path via savedStateHandle to hub",
         "ProcessingScreen -> ProcessingViewModel -> ProcessCroppedImageUseCase (ImageDecoderFacade + MpPoseLandmarker) -> ProcessingStore.put(resultId, LandmarkSet)",
         "Processing emits NavigateToEdit with resultId/imagePath"
@@ -92,36 +125,45 @@
     },
     "manual_edit_and_metrics": {
       "flow": [
-        "EditLandmarksViewModel loads auto/final set from ProcessingStore, normalizes per side, enables drag/undo/reset",
-        "finalizeEditing -> ProcessingStore.putFinal(resultId, set) and emits NavigateToIndicators",
+        "EditLandmarksViewModel loads auto/final set from ProcessingStore, normalizes per side, enables drag/undo/reset/help",
+        "finalizeEditing -> ProcessingStore.putFinal(resultId, set) and emits NavigateToIndicators/Results",
         "FrontIndicatorsViewModel / RightIndicatorsViewModel fetch final set -> compute metrics use cases -> UI panels"
       ]
     },
-    "report_generation_and_storage": {
+    "results_preview_and_save": {
       "flow": [
-        "ReportPdfBuilder renders panels/tiles from metrics + landmarks using ReportTileRenderer",
-        "ReportRepository (Room) stores ReportEntity with pdf/thumbnail paths; delete cleans up files",
-        "ReportsListViewModel loads/refreshes list; ReportViewerViewModel renders PDF pages via PdfRenderer; ReportShare handles sharing"
+        "ResultsTabViewModel observes ReportSession + ProcessingStore -> builds ReportRenderData with metrics",
+        "ReportTileRenderer renders previews; ReportShare shares temporary PDF",
+        "Save action: ReportPdfBuilder builds PDF, thumbnail generated, ReportEntity + ReportAssetEntity stored (syncStatus=PENDING), AnalysisCoordinator reset"
+      ]
+    },
+    "reports_sync": {
+      "flow": [
+        "ReportsListViewModel on Sync -> SyncAllReportsUseCase",
+        "HealthRepository ping gate",
+        "Upload pending reports: SessionsApi.resolve -> PhotosApi.uploadToSession for assets -> ReportsApi.uploadReport with metadata from ReportUploadDto",
+        "Mark synced/failed in DB; download delta via ReportsApi.delta, fetch PDFs, generate thumbnails (PdfThumbnailGenerator), delete removed serverIds",
+        "Legacy SyncReportsUseCase can upload/update report PDFs via ReportsSyncApi"
       ]
     },
     "navigation": {
-      "graph": "AppNavHost wiring: Auth graph (SignIn/SignUp) -> MainScaffold tabs (Home/Reports/Feedback/Account) -> Analysis flow (ReportHub -> Capture -> Crop -> Processing -> Edit -> Indicators) -> ReportViewer"
+      "graph": "AppNavHost wiring: Auth graph (SignIn/SignUp) -> MainScaffold tabs (Home/Reports/Feedback/Account) -> Analysis flow (ReportHub -> Capture -> Crop -> Processing -> Edit -> Indicators/Results) -> ReportViewer"
     }
   },
   "data_and_storage": {
-    "remote": "HTTP backend defined by assets android-client-config.json (base URL, auth endpoints, health path)",
-    "local_db": "Room database reports.db (ReportEntity via ReportsDao)",
-    "secure_store": "Encrypted DataStore preferences secure_tokens for access/refresh tokens",
+    "remote": "HTTP backend defined by assets/android-client-config.json (base URL + auth endpoints + health path); APIs for auth, sessions, photos upload, reports upload/delta/delete",
+    "local_db": "Room database reports.db (tables: reports with sync status/version/serverId/sessionId; report_assets for per-side image refs with sha/size)",
+    "secure_store": "Encrypted DataStore preferences secure_tokens for access/refresh tokens (CryptoManager + Android Keystore)",
     "in_memory": "ProcessingStore (landmarks cache by resultId), AnalysisCoordinator session state",
-    "files": "Captured/cropped images, generated PDFs/thumbnails saved on disk; pose model asset at assets/models/pose_landmarker_full.task"
+    "files": "Captured/cropped images under app files/cache; generated PDFs in files/reports, thumbnails in files/reports/thumbs; pulled remote PDFs in files/reports/remote (+thumbs/remote); pose model asset at assets/models/pose_landmarker_full.task; config at assets/android-client-config.json"
   },
   "external_dependencies": [
     "Hilt for DI",
     "Jetpack Compose UI + Navigation",
     "CameraX for capture",
-    "Retrofit/OkHttp + kotlinx.serialization",
+    "Retrofit/OkHttp + kotlinx.serialization + logging interceptor",
     "AndroidX DataStore (encrypted via CryptoManager)",
-    "Room persistence for reports",
+    "Room persistence for reports + assets",
     "MediaPipe Pose Landmarker task",
     "PdfDocument/PdfRenderer for PDF create/view",
     "Kotlin coroutines/Flow for async state"

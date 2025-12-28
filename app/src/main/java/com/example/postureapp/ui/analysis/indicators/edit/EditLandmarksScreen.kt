@@ -434,6 +434,7 @@ fun EditLandmarksScreen(
             uiState.activePoint?.let { point ->
                 ReferencePanel(
                     point = point,
+                    side = uiState.side,
                     onHelp = { onOpenHelp(point.name) },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
